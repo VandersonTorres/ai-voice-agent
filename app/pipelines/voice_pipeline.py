@@ -69,14 +69,12 @@ class VoicePipelineAsync:
         # 3. Prompt
         context_block = ""
         if not self.state.is_empty():
-            context_block = (
-                f"""
+            context_block = f"""
                 Conversation context:
                 Topic: {self.state.topic}
                 Summary: {self.state.summary}
                 User tone: {self.state.tone}
                 """
-            )
 
         if self.state.language and language != self.state.language:
             # If user changes language, avoids to mix multilanguages contexts

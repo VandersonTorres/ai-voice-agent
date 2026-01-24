@@ -21,8 +21,7 @@ class ConversationStateSummarizer:
         the latest interaction.
         """
 
-        prompt = (
-            f"""
+        prompt = f"""
             You are summarizing a spoken conversation.
 
             Previous summary:
@@ -42,11 +41,8 @@ class ConversationStateSummarizer:
             Respond ONLY with valid JSON.
             Language: {language}
             """
-        )
 
         self.logger.info("[LLM] Updating context state...")
-        response = await self.llm.chat(
-            [{"role": "user", "content": prompt}]
-        )
+        response = await self.llm.chat([{"role": "user", "content": prompt}])
 
         return response

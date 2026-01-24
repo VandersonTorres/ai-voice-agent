@@ -21,7 +21,4 @@ class WhisperEngine:
         """
         self.logger.info("[STT] Transcribing audio input...")
         result = self.model.transcribe(audio_path)
-        return {
-            "text": result["text"].strip(),
-            "language": result.get("language", "unknown")
-        }
+        return {"text": result["text"].strip(), "language": result.get("language", "unknown")}

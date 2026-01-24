@@ -21,9 +21,12 @@ def ogg_to_wav(
     command = [
         "ffmpeg",
         "-y",
-        "-i", str(input_path),
-        "-ac", "1",  # mono
-        "-ar", str(sample_rate),  # target sample rate
+        "-i",
+        str(input_path),
+        "-ac",
+        "1",  # mono
+        "-ar",
+        str(sample_rate),  # target sample rate
         str(output_path),
     ]
 
