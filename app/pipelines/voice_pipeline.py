@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from app.audio.formats import ogg_to_wav
+from app.audio.formats import to_wav
 from app.llm.prompts import SYSTEM_PROMPT
 from app.llm.conversation_memory import ConversationMemory
 from app.llm.conversation_state import ConversationState
@@ -15,7 +15,7 @@ from app.tts.voices import DEFAULT_VOICE, VOICE_BY_LANGUAGE
 from app.utils import run_in_thread
 
 
-class VoicePipelineAsync:
+class VoicePipeline:
     """
     This pipeline orchestrates the full audio-to-audio flow:
     speech-to-text (Whisper), text generation (Ollama),
@@ -27,7 +27,7 @@ class VoicePipelineAsync:
         self.stt = WhisperEngine()
         self.llm = OllamaClient()
 
-        self.memory = ConversationMemory(max_turns=5)
+        self.memory = ConversationMemory()
         self.state = ConversationState()
         self.topic_detector = TopicDetector()
         self.summarizer = ConversationStateSummarizer(llm=self.llm)
@@ -50,7 +50,7 @@ class VoicePipelineAsync:
         # 1. STT (thread) Ensure WAV format)
         if input_audio_path.suffix.lower() != ".wav":
             wav_path = input_audio_path.with_suffix(".wav")
-            await run_in_thread(ogg_to_wav, input_audio_path, wav_path)
+            await run_in_thread(to_wav, input_audio_path, wav_path)
         else:
             wav_path = input_audio_path
 

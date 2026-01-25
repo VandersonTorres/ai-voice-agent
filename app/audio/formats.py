@@ -2,18 +2,18 @@ import subprocess
 from pathlib import Path
 
 
-def ogg_to_wav(
+def to_wav(
     input_path: Path,
     output_path: Path,
     sample_rate: int = 16000,
 ):
-    """Convert an audio file from OGG format to WAV format
+    """Convert an audio file from unwanted format to WAV format
 
     This function uses FFmpeg to convert an OGG/Opus audio file into
     a mono WAV file with a fixed sample rate, optimized for speech
     recognition models such as Whisper.
 
-    :input_path: Path to the input OGG audio file
+    :input_path: Path to the input audio file
     :output_path: Path where the converted WAV file will be saved
     :sample_rate: Target audio sample rate in Hz (default: 16000)
     :raises subprocess.CalledProcessError: If the FFmpeg conversion fails
@@ -37,5 +37,5 @@ def ogg_to_wav(
         check=True,
     )
 
-    # Remove the original OGG file after successful conversion
+    # Remove the original file after successful conversion
     input_path.unlink()
