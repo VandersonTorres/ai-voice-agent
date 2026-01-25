@@ -3,6 +3,7 @@ from pathlib import Path
 from app.pipelines.voice_pipeline import AudioConversationPipeline
 from app.config import TEMP_DIR
 
+
 async def main():
     pipeline = AudioConversationPipeline()
 

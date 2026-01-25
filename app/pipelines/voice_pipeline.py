@@ -81,7 +81,7 @@ class AudioConversationPipeline:
         return prompts
 
     async def update_conversation_context(self, language: str, user_input_text: str, model_output_text: str) -> None:
-        """ Update the conversation state based on the latest interaction
+        """Update the conversation state based on the latest interaction
 
         :language: Language used by user
         :user_input_text: Transcribed user audio
