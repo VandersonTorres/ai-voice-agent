@@ -1,9 +1,11 @@
 import logging
 import sys
 
+from .config import LOG_LEVEL
+
 # Configure root logger
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=LOG_LEVEL,
     format="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     stream=sys.stdout,

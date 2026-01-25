@@ -1,15 +1,15 @@
 import asyncio
 from pathlib import Path
-from app.pipelines.voice_pipeline import VoicePipeline
-
+from app.pipelines.voice_pipeline import AudioConversationPipeline
+from app.config import TEMP_DIR
 
 async def main():
-    pipeline = VoicePipeline()
+    pipeline = AudioConversationPipeline()
 
-    input_audio = Path("data/temp_audio/input.wav")
-    output_audio = Path("data/temp_audio/output.mp3")
+    input_audio = Path(f"{TEMP_DIR}/input.wav")
+    output_audio = Path(f"{TEMP_DIR}/output.mp3")
 
-    result = await pipeline.process(input_audio, output_audio)
+    result = await pipeline.process_audio_conversation(input_audio, output_audio)
 
     print("\n=== RESULT ===")
     for k, v in result.items():

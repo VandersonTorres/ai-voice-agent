@@ -15,12 +15,14 @@ class EdgeTTSEngine:
         self.voice = voice
         self.logger = get_logger(self.__class__.__name__)
 
-    async def _synthesize_async(self, text: str, output_path: Path) -> None:
+    async def _synthesize_speech_from_text(self, text: str, output_path: Path) -> Path:
         """Asynchronously synthesize speech from text using Edge TTS
 
         :text: The text to be converted into speech
         :output_path: The path where the generated audio file will be saved
+        :returns: The output audio path after sinthesizing
         """
         self.logger.info(f"[TTS] Synthesizing speech to {output_path} using voice '{self.voice}'")
         communicate = edge_tts.Communicate(text=text, voice=self.voice)
         await communicate.save(output_path)
+        return output_path
