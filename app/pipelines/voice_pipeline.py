@@ -154,7 +154,7 @@ class AudioConversationPipeline:
         # Prompt construction
         prompts = self.prepare_prompts_to_llm(language, user_input_text)
         for prompt in prompts:
-            self.logger.info(f"\nEnqueued prompt: {prompt}")
+            self.logger.debug(f"\nEnqueued prompt: {prompt}")
 
         # LLM output preparing
         model_output_text = await self.llm.chat(prompts)
@@ -170,8 +170,8 @@ class AudioConversationPipeline:
         synthesized_audio_path = await self.synthesize_audio_output(language, model_output_text, output_audio_path)
 
         return {
-            "user_input_text": user_input_text,
-            "answer_text": model_output_text,
             "language": language,
-            "audio_path": synthesized_audio_path,
+            "user_input_text": user_input_text,
+            "model_output_text": model_output_text,
+            "synthesized_audio_path": synthesized_audio_path,
         }
