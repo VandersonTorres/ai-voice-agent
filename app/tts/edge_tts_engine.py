@@ -27,7 +27,7 @@ class EdgeTTSEngine:
             text=text,
             voice=self.voice,
             rate="+2%",
-            pitch="+9Hz",
+            pitch="+12Hz",
         )
         await communicate.save(output_path)
         return output_path
