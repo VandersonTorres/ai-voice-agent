@@ -23,6 +23,11 @@ class EdgeTTSEngine:
         :returns: The output audio path after sinthesizing
         """
         self.logger.info(f"[TTS] Synthesizing speech to {output_path} using voice '{self.voice}'")
-        communicate = edge_tts.Communicate(text=text, voice=self.voice)
+        communicate = edge_tts.Communicate(
+            text=text,
+            voice=self.voice,
+            rate="+2%",
+            pitch="+12Hz",
+        )
         await communicate.save(output_path)
         return output_path

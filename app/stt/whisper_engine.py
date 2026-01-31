@@ -14,11 +14,29 @@ class WhisperEngine:
         self.logger = get_logger(self.__class__.__name__)
 
     def transcribe(self, audio_path: str) -> Dict[str, str]:
-        """Transcribe an audio to text
+        """
+        Transcribe an audio to text with high literal fidelity.
 
-        :audio_path: The path to the audio file.
-        :returns: Dict containing the transcribed text and language detected
+        :param audio_path: Path to the audio file
+        :return: Dict containing transcribed text and detected language
         """
         self.logger.info("[STT] Transcribing audio input...")
-        result = self.model.transcribe(audio_path)
-        return {"text": result["text"].strip(), "language": result.get("language", "unknown")}
+
+        result = self.model.transcribe(
+            audio_path,
+            task="transcribe",
+            temperature=0.0,  # Less creative
+            beam_size=1,  # Less reinterpretation
+            best_of=1,  # Avoid choosing prettiest phrases
+            condition_on_previous_text=False,  # Don't complete sentences
+            word_timestamps=True,  # More literalness
+            verbose=False,
+        )
+
+        text = result.get("text", "").strip()
+        detected_language = result.get("language", "unknown")
+
+        return {
+            "text": text,
+            "language": detected_language,
+        }
