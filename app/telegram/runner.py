@@ -8,7 +8,7 @@ from telegram.ext import (
 from app.config import TELEGRAM_BOT_TOKEN
 
 from . import on_shutdown, start
-from .handlers import handle_text, handle_voice
+from .handlers import handle_text, handle_voice, handle_transcription_request
 
 
 def run_telegram_bot() -> None:
@@ -17,6 +17,7 @@ def run_telegram_bot() -> None:
 
     # Commands Handlers
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("transcribe", handle_transcription_request))
 
     # Voice message handler
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))

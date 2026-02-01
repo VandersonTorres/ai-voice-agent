@@ -3,7 +3,13 @@ from telegram.ext import ContextTypes
 
 from app.config import TEMP_DIR
 
-from . import logger, text_pipeline, voice_pipeline
+from . import (
+    logger,
+    text_pipeline,
+    voice_pipeline,
+    set_latest_agent_voice_response,
+    get_latest_agent_voice_response,
+)
 
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -27,6 +33,10 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # Voice Pipeline processing
         result = await voice_pipeline.process_conversation(user_input_path, response_output_path)
         await update.message.reply_voice(voice=result["synthesized_audio_path"])
+
+        # Store the latest agent voice response path for this user
+        set_latest_agent_voice_response(update.message.from_user.id, result["model_output_text"])
+
         logger.info(
             f"=> Processed voice message from user '{update.message.from_user.id}'\n"
             f"=> Input text: '{result['user_input_text']}'\n"
@@ -58,3 +68,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"=> Input text: '{result['user_input_text']}'\n"
         f"=> Response text: '{result['model_output_text']}'\n"
     )
+
+
+async def handle_transcription_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /transcribe command to transcribe the latest agent voice response.
+
+    :update: Incoming update from Telegram
+    :context: Context for the callback
+    """
+    user_id = update.message.from_user.id
+    latest_response_text = get_latest_agent_voice_response(user_id)
+
+    if latest_response_text:
+        await update.message.reply_text(latest_response_text)
+    else:
+        await update.message.reply_text("Desculpe, não tenho uma resposta de voz recente para transcrever.")
