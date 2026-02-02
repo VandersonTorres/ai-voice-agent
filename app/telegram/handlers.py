@@ -32,6 +32,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     try:
         # Voice Pipeline processing
         result = await voice_pipeline.process_conversation(user_input_path, response_output_path)
+        # TODO: Implements a retry mechanism for robustness
         await update.message.reply_voice(voice=result["synthesized_audio_path"])
 
         # Store the latest agent voice response path for this user
@@ -44,7 +45,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
     except Exception as err:
         await update.message.reply_text(
-            "Tivemos um erro durante o processamento da sua mensagem. Por favor, tente novamente."
+            "Tive um erro durante o processamento da sua mensagem. " "Por favor, encaminhe seu áudio novamente."
         )
         logger.error(f"Error processing voice message: {err}", exc_info=True)
 
