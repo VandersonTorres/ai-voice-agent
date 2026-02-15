@@ -4,7 +4,7 @@ from app.pipelines import BaseConversationPipeline
 
 
 class TextPipeline(BaseConversationPipeline):
-    """This pipeline orchestrates the full text-to-text flow (text generation (Ollama))."""
+    """This pipeline orchestrates the full text-to-text flow."""
 
     async def process_conversation(self, user_input_text: str) -> dict[str, str]:
         """Orchestrates the full text-to-text conversation flow.
@@ -12,7 +12,7 @@ class TextPipeline(BaseConversationPipeline):
         The method executes the following steps:
         1. Detects if the topic has changed and resets context if needed
         2. Prepares prompts including conversation history for the LLM
-        3. Sends prompts to the Ollama LLM and retrieves the generated response
+        3. Sends prompts to the LLM and retrieves the generated response
         4. Updates the conversation context and state
 
         :user_input_text: Text input from the user

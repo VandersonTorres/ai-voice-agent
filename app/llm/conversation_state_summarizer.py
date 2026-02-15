@@ -1,11 +1,11 @@
-from app.llm.ollama_client import OllamaClient
+from app.llm.llm_api_client import LLMClient
 from app.logging import get_logger
 
 
 class ConversationStateSummarizer:
     """Uses the LLM to incrementally summarize the conversation state."""
 
-    def __init__(self, llm: OllamaClient) -> None:
+    def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
         self.logger = get_logger(self.__class__.__name__)
 

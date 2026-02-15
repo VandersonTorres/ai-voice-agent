@@ -29,9 +29,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Where store the output
     response_output_path = TEMP_DIR / f"response_{voice.file_id}_response.wav"
 
+    # Voice Pipeline processing
+    result = await voice_pipeline.process_conversation(user_input_path, response_output_path)
     try:
-        # Voice Pipeline processing
-        result = await voice_pipeline.process_conversation(user_input_path, response_output_path)
         # TODO: Implements a retry mechanism for robustness
         await update.message.reply_voice(voice=result["synthesized_audio_path"])
 
@@ -44,10 +44,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"=> Response text: '{result['model_output_text']}'\n"
         )
     except Exception as err:
-        await update.message.reply_text(
-            "Tive um erro durante o processamento da sua mensagem. " "Por favor, encaminhe seu áudio novamente."
-        )
-        logger.error(f"Error processing voice message: {err}", exc_info=True)
+        await update.message.reply_text(f"Vou responder por texto dessa vez.\n\n{result['model_output_text']}")
+        logger.error(f"Error processing voice message. Response sent via text. Details: {err}", exc_info=True)
 
     user_input_path.with_suffix(".wav").unlink(missing_ok=True)
     response_output_path.unlink(missing_ok=True)

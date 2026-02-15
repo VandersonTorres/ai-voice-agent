@@ -5,27 +5,28 @@ from app.config import OLLAMA_MODEL
 from app.logging import get_logger
 
 
-class OllamaClient:
-    """Asynchronous client for interacting with the Ollama API"""
+class LLMClient:
+    """Asynchronous client for interacting with the target LLM API"""
 
-    def __init__(self, model: str = OLLAMA_MODEL, host: str = "http://localhost:11434") -> None:
-        """Initialize the Ollama client
+    def __init__(self, model: str = OLLAMA_MODEL, host: str = "http://localhost:11434", timeout: int = 360) -> None:
+        """Initialize the LLM client
 
-        :model: The name of the Ollama model to be used (e.g. llama3:8b)
-        :host: The Ollama server base URL. Defaults to localhost.
+        :model: The name of the Model to be used (e.g. llama3:8b)
+        :host: The server base URL. Defaults to localhost.
+        :timeout: Time waited until break the LLM request
         """
         self.model = model
         self.host = host
         self.logger = get_logger(self.__class__.__name__)
-        self.client = httpx.AsyncClient(timeout=360)
+        self.client = httpx.AsyncClient(timeout=timeout)
 
     async def chat(self, messages: List[Dict[str, str]]) -> str:
-        """Send a chat request to the Ollama API and return the model response
+        """Send a chat request to the LLM API and return the model response
 
         :messages: A list of message dictionaries following the OpenAI chat format
             (each item must contain 'role' and 'content')
         :returns: The generated text response from the language model
-        :raises requests.HTTPError: If the Ollama API returns an error response
+        :raises requests.HTTPError: If the LLM API returns an error response
         """
         payload = {
             "model": self.model,
