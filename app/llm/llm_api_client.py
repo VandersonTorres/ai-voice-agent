@@ -1,14 +1,16 @@
 import httpx
 from typing import List, Dict
 
-from app.config import OLLAMA_MODEL
+from app.config import CONVERSATIONAL_LLM
 from app.logging import get_logger
 
 
 class LLMClient:
     """Asynchronous client for interacting with the target LLM API"""
 
-    def __init__(self, model: str = OLLAMA_MODEL, host: str = "http://localhost:11434", timeout: int = 360) -> None:
+    def __init__(
+        self, model: str = CONVERSATIONAL_LLM, host: str = "http://localhost:11434", timeout: int = 360
+    ) -> None:
         """Initialize the LLM client
 
         :model: The name of the Model to be used (e.g. llama3:8b)

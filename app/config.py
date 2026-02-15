@@ -7,7 +7,7 @@ from pathlib import Path
 load_dotenv()
 
 # Models config
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")
+CONVERSATIONAL_LLM = os.getenv("CONVERSATIONAL_LLM")
 WHISPER_MODEL = os.getenv("WHISPER_MODEL")
 DEFAULT_LANGUAGE = os.getenv("DEFAULT_LANGUAGE")
 

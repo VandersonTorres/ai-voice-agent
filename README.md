@@ -56,6 +56,12 @@ ollama run llama3:8b
 pip install -r requirements.txt
 ```
 
+#### Install pre-commit
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 #### Setup environment
 - Copy `.env.sample` to `.env` and update your environment variables as needed.
 ```bash
