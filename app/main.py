@@ -5,7 +5,7 @@ from app.telegram.runner import run_telegram_bot
 
 # from app.whatsapp.runner import run_wpp_bot
 
-logger = get_logger()
+logger = get_logger(__name__)
 
 
 if __name__ == "__main__":
@@ -20,10 +20,10 @@ if __name__ == "__main__":
         action="store_true",
         help=("Indicate the bot to use WhatsApp Integration"),
     )
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    use_telegram = args.use_telegram
-    use_whatsapp = args.use_whatsapp
+    use_telegram = arguments.use_telegram
+    use_whatsapp = arguments.use_whatsapp
     if use_telegram:
         run_telegram_bot()
     elif not use_telegram and not use_whatsapp:

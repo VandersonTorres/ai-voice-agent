@@ -20,6 +20,8 @@ class LLMClient:
         self.model = model
         self.host = host
         self.logger = get_logger(self.__class__.__name__)
+
+        self.logger.info(f"Initializing LLMClient with model {self.model} at {self.host}")
         self.client = httpx.AsyncClient(timeout=timeout)
 
     async def chat(self, messages: List[Dict[str, str]]) -> str:
