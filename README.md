@@ -1,4 +1,4 @@
-# LISA AI Voice Agent
+# LISA AI Voice Agent *(Prototype)*
 
 ## Overview
 
