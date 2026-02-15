@@ -6,7 +6,7 @@ from app.llm.conversation_memory import ConversationMemory
 from app.llm.conversation_state import ConversationState
 from app.llm.conversation_topic_detector import TopicDetector
 from app.llm.conversation_state_summarizer import ConversationStateSummarizer
-from app.llm.ollama_client import OllamaClient
+from app.llm.llm_api_client import LLMClient
 from app.logging import get_logger
 
 
@@ -15,7 +15,7 @@ class BaseConversationPipeline:
 
     def __init__(self) -> None:
         """Initialize the conversation processing pipeline"""
-        self.llm = OllamaClient()
+        self.llm = LLMClient()
 
         self.memory = ConversationMemory()
         self.state = ConversationState()

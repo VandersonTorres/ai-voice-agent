@@ -12,7 +12,7 @@ from app.utils import run_in_thread
 class AudioPipeline(BaseConversationPipeline):
     """
     This pipeline orchestrates the full audio-to-audio flow:
-    speech-to-text (Whisper), text generation (Ollama),
+    speech-to-text (Whisper),
     and text-to-speech (Edge TTS).
     """
 
@@ -63,7 +63,7 @@ class AudioPipeline(BaseConversationPipeline):
         1. Transcribes the input audio to text using Whisper (STT)
         2. Detects if the topic has changed and resets context if needed
         3. Prepares prompts including conversation history for the LLM
-        4. Sends prompts to the Ollama LLM and retrieves the generated response
+        4. Sends prompts to the LLM and retrieves the generated response
         5. Updates the conversation context and state
         6. Synthesizes the LLM response into speech audio using Edge TTS
 
