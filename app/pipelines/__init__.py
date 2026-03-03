@@ -2,7 +2,7 @@ import json
 from typing import Any
 
 from app.llm.prompts import SYSTEM_PROMPT
-from app.llm.conversation_memory import ConversationMemory
+from app.llm.conversation_memory import ConversationReminder
 from app.llm.conversation_state import ConversationState
 from app.llm.conversation_topic_detector import TopicDetector
 from app.llm.conversation_state_summarizer import ConversationStateSummarizer
@@ -17,37 +17,53 @@ class BaseConversationPipeline:
         """Initialize the conversation processing pipeline"""
         self.llm = LLMClient()
 
-        self.memory = ConversationMemory()
         self.state = ConversationState()
         self.topic_detector = TopicDetector()
         self.summarizer = ConversationStateSummarizer(llm=self.llm)
 
         self.logger = get_logger(self.__class__.__name__)
 
-    def prepare_prompts_to_llm(self, language: str, user_input_text: str) -> list[dict[str, str]]:
+    def prepare_prompts_to_llm(
+        self,
+        language: str,
+        user_input_text: str,
+        chat_memory: ConversationReminder,
+        user_profile: dict[str, Any] | None = None,
+    ) -> list[dict[str, str]]:
         """Build the final prompt to the Model, preparing previous context if applicable
 
         :language: Language used by user
         :user_input_text: User input text
+        :chat_memory: ConversationReminder instance containing the conversation history
+        :user_profile: Optional dictionary containing user profile information (e.g., name, preferences)
         :returns: A list of dicts where each dict is a prompt to the Model
         """
         context_block = ""
+        if user_profile:
+            context_block = (
+                "User General Profile:\n"
+                f"Name: {user_profile.get('name', '')}\n"
+                f"Preferred languages: {user_profile.get('preferred_languages', '')}\n"
+                f"Interests: {user_profile.get('interests', '')}\n"
+                f"Conversation style: {user_profile.get('conversation_style', '')}\n"
+            )
+
         if not self.state.is_empty():
-            context_block = f"""
-                Conversation context:
-                Topic: {self.state.topic}
-                Summary: {self.state.summary}
-                User tone: {self.state.tone}
-                """
+            context_block += (
+                "Current Conversation Context:\n"
+                f"Topic: {self.state.topic}\n"
+                f"Summary: {self.state.summary}\n"
+                f"User tone: {self.state.tone}\n"
+            )
 
         if self.state.language and language != self.state.language:
             # If user changes language, avoids to mix multilanguages contexts
             self.state.clear()
-            self.memory.clear()
+            chat_memory.clear()
 
         prompts = [
             {"role": "system", "content": SYSTEM_PROMPT + context_block},
-            *self.memory.get_messages(),
+            *chat_memory.get_messages(),
             {"role": "user", "content": user_input_text},
         ]
 

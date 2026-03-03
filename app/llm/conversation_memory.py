@@ -2,13 +2,13 @@ from collections import deque
 from typing import Deque, Dict, List
 
 
-class ConversationMemory:
-    """
-    Manages a short-term conversational memory to maintain context
-    across multiple user interactions.
+class ConversationReminder:
+    """Class to manage conversation history for a single chat session.
+
+    It stores a limited number of recent user and assistant messages to provide context for the LLM.
     """
 
-    def __init__(self, max_turns: int = 5):
+    def __init__(self, max_turns: int = 5) -> None:
         """
         Initialize the conversation memory.
 
@@ -32,3 +32,27 @@ class ConversationMemory:
     def clear(self) -> None:
         """Clear the conversation memory"""
         self.history.clear()
+
+
+class RapidMemoryManager:
+    """
+    Singleton store for ConversationReminder instances per chat_id.
+    """
+
+    _store: dict[str, ConversationReminder] = {}
+
+    @classmethod
+    def get_memory(cls, chat_id: str) -> ConversationReminder:
+        if chat_id not in cls._store:
+            cls._store[chat_id] = ConversationReminder()
+
+        return cls._store[chat_id]
+
+    @classmethod
+    def clear_memory(cls, chat_id: str) -> None:
+        if chat_id in cls._store:
+            cls._store[chat_id].clear()
+
+    @classmethod
+    def reset_all(cls) -> None:
+        cls._store.clear()

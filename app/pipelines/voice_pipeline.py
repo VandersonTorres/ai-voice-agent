@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from app.audio.formats import to_wav
+from app.llm.conversation_memory import ConversationReminder
 from app.pipelines import BaseConversationPipeline
 from app.stt.whisper_engine import WhisperEngine
 from app.tts.edge_tts_engine import EdgeTTSEngine
@@ -56,7 +57,13 @@ class AudioPipeline(BaseConversationPipeline):
         output_path = await tts._synthesize_speech_from_text(model_output_text, output_audio_path)
         return output_path
 
-    async def process_conversation(self, user_input_audio_path: Path, output_audio_path: Path) -> dict[str, Any]:
+    async def process_conversation(
+        self,
+        user_input_audio_path: Path,
+        output_audio_path: Path,
+        chat_memory: ConversationReminder,
+        user_profile: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Orchestrates the full audio-to-audio conversation flow.
 
         The method executes the following steps:
@@ -69,6 +76,8 @@ class AudioPipeline(BaseConversationPipeline):
 
         :user_input_audio_path: Path to the input audio file (WAV format expected)
         :output_audio_path: Path where the generated output audio will be saved
+        :chat_memory: ConversationReminder instance containing the conversation history
+        :user_profile: Optional dictionary containing user profile information (e.g., name, preferences)
         :returns: A dictionary containing:
             language, user_input_text, user_input_audio_path, model_output_text and synthesized_audio_path
         """
@@ -82,18 +91,18 @@ class AudioPipeline(BaseConversationPipeline):
         if self.topic_detector.is_new_topic(self.state.summary, user_input_text):
             self.logger.info("Topic change detected. Resetting conversation state.")
             self.state.clear()
-            self.memory.clear()
+            chat_memory.clear()
 
         # Prompt construction
-        prompts = self.prepare_prompts_to_llm(language, user_input_text)
+        prompts = self.prepare_prompts_to_llm(language, user_input_text, chat_memory, user_profile)
         for prompt in prompts:
             self.logger.debug(f"\nEnqueued prompt: {prompt}")
 
         # LLM output preparing
         model_output_text = await self.llm.chat(prompts)
         self.logger.info(f"[LLM] Response:\n\t{model_output_text}")
-        self.memory.add_user_message(user_input_text)
-        self.memory.add_assistant_message(model_output_text)
+        chat_memory.add_user_message(user_input_text)
+        chat_memory.add_assistant_message(model_output_text)
 
         # Conversation context update
         await self.update_conversation_context(language, user_input_text, model_output_text)

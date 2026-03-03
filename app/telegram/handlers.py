@@ -2,6 +2,8 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from app.config import TEMP_DIR
+from app.llm.conversation_memory import ConversationReminder, RapidMemoryManager
+from app.utils.conversation_db import ConversationDB
 
 from . import (
     logger,
@@ -12,32 +14,61 @@ from . import (
 )
 
 
+def _update_memory(chat_id: str, db: ConversationDB) -> ConversationReminder:
+    """Helper function to update the in-memory conversation context for a given chat_id.
+
+    :chat_id: Unique identifier for the chat (e.g., user ID)
+    :db: Instance of the ConversationDB to access stored conversations
+    :returns: Updated ConversationReminder instance with the conversation history loaded
+    """
+    chat_hot_memory: ConversationReminder = RapidMemoryManager.get_memory(chat_id=chat_id)
+
+    if db.is_new_conversation(chat_id):
+        chat_hot_memory.clear()
+        conv = db.get_conversation(chat_id)
+        if conv and conv["messages"]:
+            for msg in conv["messages"]:
+                if msg["role"] == "user":
+                    chat_hot_memory.add_user_message(msg["content"])
+                elif msg["role"] == "assistant":
+                    chat_hot_memory.add_assistant_message(msg["content"])
+
+    return chat_hot_memory
+
+
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming voice messages from users.
 
     :update: Incoming update from Telegram
     :context: Context for the callback
     """
-    voice = update.message.voice
-
     # Download the user voice message
+    voice = update.message.voice
     audio_file = await context.bot.get_file(voice.file_id)
     user_input_path = TEMP_DIR / f"{voice.file_id}.ogg"
     await audio_file.download_to_drive(user_input_path)
     logger.info(f"Downloaded voice message to '{user_input_path}'")
 
-    # Where store the output
+    # Update conversation memory with history from DB
+    chat_id = str(update.message.from_user.id)
+    db = ConversationDB()
+    profile = db.get_profile(chat_id)
+    chat_hot_memory = _update_memory(chat_id, db)
+
+    # Process the voice input and Persist conversation context after processing
     response_output_path = TEMP_DIR / f"response_{voice.file_id}_response.wav"
+    result = await voice_pipeline.process_conversation(
+        user_input_audio_path=user_input_path,
+        output_audio_path=response_output_path,
+        chat_memory=chat_hot_memory,
+        user_profile=profile,
+    )
+    db.save_conversation(chat_id, chat_hot_memory.get_messages())
 
-    # Voice Pipeline processing
-    result = await voice_pipeline.process_conversation(user_input_path, response_output_path)
     try:
-        # TODO: Implements a retry mechanism for robustness
+        # Reply
         await update.message.reply_voice(voice=result["synthesized_audio_path"])
-
-        # Store the latest agent voice response path for this user
         set_latest_agent_voice_response(update.message.from_user.id, result["model_output_text"])
-
         logger.info(
             f"=> Processed voice message from user '{update.message.from_user.id}'\n"
             f"=> Input text: '{result['user_input_text']}'\n"
@@ -47,6 +78,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(f"Vou responder por texto dessa vez.\n\n{result['model_output_text']}")
         logger.error(f"Error processing voice message. Response sent via text. Details: {err}", exc_info=True)
 
+    # Cleanup temporary audio files
     user_input_path.with_suffix(".wav").unlink(missing_ok=True)
     response_output_path.unlink(missing_ok=True)
 
@@ -57,10 +89,20 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     :update: Incoming update from Telegram
     :context: Context for the callback
     """
-    user_input_text = update.message.text
+    # Update conversation memory with history from DB
+    chat_id = str(update.message.from_user.id)
+    db = ConversationDB()
+    profile = db.get_profile(chat_id)
+    chat_hot_memory = _update_memory(chat_id, db)
 
-    # Process the text input
-    result = await text_pipeline.process_conversation(user_input_text)
+    # Process the text input and Persist conversation context after processing
+    user_input_text = update.message.text
+    result = await text_pipeline.process_conversation(
+        user_input_text, chat_memory=chat_hot_memory, user_profile=profile
+    )
+    db.save_conversation(chat_id, chat_hot_memory.get_messages())
+
+    # Reply
     await update.message.reply_text(result["model_output_text"])
     logger.info(
         f"=> Processed text message from user '{update.message.from_user.id}'\n"

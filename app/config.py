@@ -18,3 +18,4 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", logging.INFO)
 # Folders config
 TEMP_DIR = Path("data/temp_audio")
 TEMP_DIR.mkdir(exist_ok=True, parents=True)
+DB_PATH = Path("data/conversations.db")
