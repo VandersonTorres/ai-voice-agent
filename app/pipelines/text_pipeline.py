@@ -48,6 +48,7 @@ class TextPipeline(BaseConversationPipeline):
         # Conversation context update
         await self.update_conversation_context(language, user_input_text, model_output_text)
         self.logger.info("Conversation context was updated succesfully.")
+        # TODO: UPDATE THE USER PROFILE ON DB
 
         return {
             "language": language,

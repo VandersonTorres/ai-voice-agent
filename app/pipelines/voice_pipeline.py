@@ -107,6 +107,7 @@ class AudioPipeline(BaseConversationPipeline):
         # Conversation context update
         await self.update_conversation_context(language, user_input_text, model_output_text)
         self.logger.info("Conversation context was updated succesfully.")
+        # TODO: UPDATE THE USER PROFILE ON DB
 
         # Output voice audio preparing (TTS)
         synthesized_audio_path = await self.synthesize_audio_output(language, model_output_text, output_audio_path)
