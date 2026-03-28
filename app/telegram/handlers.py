@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from app.config import TEMP_DIR
-from app.llm.conversation_memory import ConversationReminder, RapidMemoryManager
 from app.utils.conversation_db import ConversationDB
 
 from . import (
@@ -11,29 +10,8 @@ from . import (
     voice_pipeline,
     set_latest_agent_voice_response,
     get_latest_agent_voice_response,
+    get_updated_memory,
 )
-
-
-def _update_memory(chat_id: str, db: ConversationDB) -> ConversationReminder:
-    """Helper function to update the in-memory conversation context for a given chat_id.
-
-    :chat_id: Unique identifier for the chat (e.g., user ID)
-    :db: Instance of the ConversationDB to access stored conversations
-    :returns: Updated ConversationReminder instance with the conversation history loaded
-    """
-    chat_hot_memory: ConversationReminder = RapidMemoryManager.get_memory(chat_id=chat_id)
-
-    if db.is_new_conversation(chat_id):
-        chat_hot_memory.clear()
-        conv = db.get_conversation(chat_id)
-        if conv and conv["messages"]:
-            for msg in conv["messages"]:
-                if msg["role"] == "user":
-                    chat_hot_memory.add_user_message(msg["content"])
-                elif msg["role"] == "assistant":
-                    chat_hot_memory.add_assistant_message(msg["content"])
-
-    return chat_hot_memory
 
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -53,7 +31,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     chat_id = str(update.message.from_user.id)
     db = ConversationDB()
     profile = db.get_profile(chat_id)
-    chat_hot_memory = _update_memory(chat_id, db)
+    chat_hot_memory = get_updated_memory(chat_id, db)
 
     # Process the voice input and Persist conversation context after processing
     response_output_path = TEMP_DIR / f"response_{voice.file_id}_response.wav"
@@ -64,6 +42,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         user_profile=profile,
     )
     db.save_conversation(chat_id, chat_hot_memory.get_messages())
+    db.save_profile(chat_id, result.get("parsed_profile", {}))
 
     try:
         # Reply
@@ -93,7 +72,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     chat_id = str(update.message.from_user.id)
     db = ConversationDB()
     profile = db.get_profile(chat_id)
-    chat_hot_memory = _update_memory(chat_id, db)
+    chat_hot_memory = get_updated_memory(chat_id, db)
 
     # Process the text input and Persist conversation context after processing
     user_input_text = update.message.text
@@ -101,6 +80,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         user_input_text, chat_memory=chat_hot_memory, user_profile=profile
     )
     db.save_conversation(chat_id, chat_hot_memory.get_messages())
+    db.save_profile(chat_id, result.get("parsed_profile", {}))
 
     # Reply
     await update.message.reply_text(result["model_output_text"])

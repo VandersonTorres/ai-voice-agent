@@ -1,6 +1,8 @@
 from collections import deque
 from typing import Deque, Dict, List
 
+from app.config import MAX_CONVERSATION_TURNS
+
 
 class ConversationReminder:
     """Class to manage conversation history for a single chat session.
@@ -8,14 +10,14 @@ class ConversationReminder:
     It stores a limited number of recent user and assistant messages to provide context for the LLM.
     """
 
-    def __init__(self, max_turns: int = 5) -> None:
+    def __init__(self, max_turns: int = MAX_CONVERSATION_TURNS) -> None:
         """
         Initialize the conversation memory.
 
         :param max_turns: Maximum number of user/assistant turns to keep
         """
         self.max_turns = max_turns
-        self.history: Deque[Dict[str, str]] = deque(maxlen=max_turns * 2)
+        self.history: Deque[Dict[str, str]] = deque(maxlen=max_turns)
 
     def add_user_message(self, text: str) -> None:
         """Add a user message to the memory"""

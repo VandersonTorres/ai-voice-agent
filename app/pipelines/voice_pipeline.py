@@ -79,7 +79,8 @@ class AudioPipeline(BaseConversationPipeline):
         :chat_memory: ConversationReminder instance containing the conversation history
         :user_profile: Optional dictionary containing user profile information (e.g., name, preferences)
         :returns: A dictionary containing:
-            language, user_input_text, user_input_audio_path, model_output_text and synthesized_audio_path
+            language, user_input_text, user_input_audio_path,
+            model_output_text and synthesized_audio_path, parsed_profile
         """
         # User input preparing (STT)
         stt_result = await self.transcribe_user_audio(user_input_audio_path)
@@ -107,7 +108,8 @@ class AudioPipeline(BaseConversationPipeline):
         # Conversation context update
         await self.update_conversation_context(language, user_input_text, model_output_text)
         self.logger.info("Conversation context was updated succesfully.")
-        # TODO: UPDATE THE USER PROFILE ON DB
+
+        parsed_profile = await self.update_user_profile(chat_memory, user_profile)
 
         # Output voice audio preparing (TTS)
         synthesized_audio_path = await self.synthesize_audio_output(language, model_output_text, output_audio_path)
@@ -118,4 +120,5 @@ class AudioPipeline(BaseConversationPipeline):
             "user_input_audio_path": stt_result["user_input_audio_path"],
             "model_output_text": model_output_text,
             "synthesized_audio_path": synthesized_audio_path,
+            "parsed_profile": parsed_profile,
         }

@@ -10,7 +10,7 @@ class TextPipeline(BaseConversationPipeline):
 
     async def process_conversation(
         self, user_input_text: str, chat_memory: ConversationReminder, user_profile: dict[str, Any] | None = None
-    ) -> dict[str, str]:
+    ) -> dict[str, Any]:
         """Orchestrates the full text-to-text conversation flow.
 
         The method executes the following steps:
@@ -23,7 +23,7 @@ class TextPipeline(BaseConversationPipeline):
         :chat_memory: ConversationReminder instance containing the conversation history
         :user_profile: Optional dictionary containing user profile information (e.g., name, preferences)
         :returns: A dictionary containing:
-            language, user_input_text, model_output_text
+            language, user_input_text, model_output_text, parsed_profile
         """
         language = detect(user_input_text)
         self.logger.info(f"Detected language: {language}")
@@ -48,10 +48,11 @@ class TextPipeline(BaseConversationPipeline):
         # Conversation context update
         await self.update_conversation_context(language, user_input_text, model_output_text)
         self.logger.info("Conversation context was updated succesfully.")
-        # TODO: UPDATE THE USER PROFILE ON DB
+        parsed_profile = await self.update_user_profile(chat_memory, user_profile)
 
         return {
             "language": language,
             "user_input_text": user_input_text,
             "model_output_text": model_output_text,
+            "parsed_profile": parsed_profile,
         }

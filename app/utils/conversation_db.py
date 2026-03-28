@@ -29,25 +29,25 @@ class ConversationDB:
         # Create conversations table
         cur.execute(
             """
-        CREATE TABLE IF NOT EXISTS conversations (
-            chat_id TEXT PRIMARY KEY,
-            messages TEXT,
-            last_message_ts TEXT
-        )
-        """
+            CREATE TABLE IF NOT EXISTS conversations (
+                chat_id TEXT PRIMARY KEY,
+                messages TEXT,
+                last_message_ts TEXT
+            )
+            """
         )
 
         # Create profiles table
         cur.execute(
             """
-        CREATE TABLE IF NOT EXISTS profiles (
-            chat_id TEXT PRIMARY KEY,
-            name TEXT,
-            preferred_languages TEXT,
-            interests TEXT,
-            conversation_style TEXT,
-        )
-        """
+            CREATE TABLE IF NOT EXISTS profiles (
+                chat_id TEXT PRIMARY KEY,
+                name TEXT,
+                preferred_languages TEXT,
+                interests TEXT,
+                conversation_style TEXT,
+            )
+            """
         )
         self.conn.commit()
 
