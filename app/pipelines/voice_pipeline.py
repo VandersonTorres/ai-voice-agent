@@ -110,6 +110,8 @@ class AudioPipeline(BaseConversationPipeline):
         self.logger.info("Conversation context was updated succesfully.")
 
         parsed_profile = await self.update_user_profile(chat_memory, user_profile)
+        if parsed_profile:
+            self.logger.info(f"User profile was updated successfully:\n\t{parsed_profile}")
 
         # Output voice audio preparing (TTS)
         synthesized_audio_path = await self.synthesize_audio_output(language, model_output_text, output_audio_path)

@@ -49,6 +49,8 @@ class TextPipeline(BaseConversationPipeline):
         await self.update_conversation_context(language, user_input_text, model_output_text)
         self.logger.info("Conversation context was updated succesfully.")
         parsed_profile = await self.update_user_profile(chat_memory, user_profile)
+        if parsed_profile:
+            self.logger.info(f"User profile was updated successfully:\n\t{parsed_profile}")
 
         return {
             "language": language,
