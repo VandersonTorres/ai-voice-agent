@@ -19,7 +19,7 @@ class ConversationStateSummarizer:
         user_text: str,
         assistant_text: str,
         language: str,
-    ) -> dict[str, Any]:
+    ) -> str:
         """
         Generate an updated summary, topic and tone based on
         the latest interaction.
@@ -53,7 +53,11 @@ class ConversationStateSummarizer:
 
     async def get_updated_user_profile(
         self, previous_user_profile: dict[str, Any] | None, last_messages: list[dict[str, str]]
-    ) -> dict[str, Any]:
+    ) -> str:
+        """
+        Generate an updated user profile based on the latest conversation turns.
+        """
+
         update_profile_prompt = f"""
             You are summarizing a user profile.
 
@@ -64,14 +68,14 @@ class ConversationStateSummarizer:
             {json.dumps(last_messages, ensure_ascii=False, indent=2)}
 
             Return a concise JSON with:
-            - (str) user name (if mentioned, otherwise return null)
+            - (str) name (if mentioned, otherwise return null)
             - (list) preferred_languages (spoken languages or mentioned languages in the conversation)
-            - (list) interests
+            - (list) interests (e.g. sports, technology, art, music. Whatever the user demonstrates interest in.)
             - (str) conversation_style (e.g. formal, casual, concise, detailed, humorous, etc.)
 
             Respond ONLY with valid JSON.
             """
 
-        self.logger.info("[LLM] Updating context state...")
+        self.logger.info("[LLM] Updating user profile...")
         profile_response = await self.llm.chat([{"role": "user", "content": update_profile_prompt}])
         return profile_response

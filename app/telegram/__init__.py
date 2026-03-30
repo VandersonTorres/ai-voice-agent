@@ -11,8 +11,9 @@ logger = get_logger(__name__)
 text_pipeline = TextPipeline()
 voice_pipeline = AudioPipeline()
 
-# Cache to store the latest agent voice response transcribed per user
+# Cache to store the latest voice response
 latest_agent_voice_response: dict[str, str] = {}
+latest_user_voice_input: dict[str, str] = {}
 
 
 def set_latest_agent_voice_response(user_id: int, audio_text: str) -> None:
@@ -21,6 +22,14 @@ def set_latest_agent_voice_response(user_id: int, audio_text: str) -> None:
 
 def get_latest_agent_voice_response(user_id: int) -> str | None:
     return latest_agent_voice_response.get(str(user_id))
+
+
+def set_latest_user_voice_input(user_id: int, audio_text: str) -> None:
+    latest_user_voice_input[str(user_id)] = audio_text
+
+
+def get_latest_user_voice_input(user_id: int) -> str | None:
+    return latest_user_voice_input.get(str(user_id))
 
 
 def get_updated_memory(chat_id: str, db: ConversationDB) -> ConversationReminder:
@@ -34,6 +43,9 @@ def get_updated_memory(chat_id: str, db: ConversationDB) -> ConversationReminder
 
     if db.is_new_conversation(chat_id):
         chat_hot_memory.clear()
+        return chat_hot_memory
+
+    if not chat_hot_memory.get_messages():
         conv = db.get_conversation(chat_id)
         if conv and conv["messages"]:
             for msg in conv["messages"]:
@@ -43,6 +55,27 @@ def get_updated_memory(chat_id: str, db: ConversationDB) -> ConversationReminder
                     chat_hot_memory.add_assistant_message(msg["content"])
 
     return chat_hot_memory
+
+
+def persist_conversation_context(chat_id: str, db: ConversationDB, chat_hot_memory: ConversationReminder) -> None:
+    """Helper function to persist the conversation context for a given chat_id.
+
+    :chat_id: Unique identifier for the chat (e.g., user ID)
+    :db: Instance of the ConversationDB to access stored conversations
+    :chat_hot_memory: ConversationReminder instance containing the conversation history to be persisted
+    """
+    existing = db.get_conversation(chat_id)
+    existing_messages = existing["messages"] if existing else []
+    new_messages = chat_hot_memory.get_messages()
+
+    if len(new_messages) > len(existing_messages):
+        delta = new_messages[len(existing_messages) :]
+    else:
+        delta = new_messages[-2:]  # Get only the latest iteration
+
+    merged_msgs = existing_messages + delta
+    db.save_conversation(chat_id, merged_msgs)
+    logger.info(f"Updated conversation persistence for chat_id: {chat_id}")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,7 +89,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Sobre o que vamos conversar hoje? Pode me mandar um áudio se quiser!\n"
         "Comandos disponíveis:\n\n"
         "/start - Iniciar a conversa\n"
-        "/transcribe - Transcrever a última resposta de voz\n"
+        "/whatYouSaid - Transcrever a última resposta de voz\n"
+        "/whatISaid - Transcrever o que você disse\n"
     )
 
 

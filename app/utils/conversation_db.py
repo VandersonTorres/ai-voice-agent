@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional
 
 from pathlib import Path
@@ -16,9 +16,9 @@ class ConversationDB:
     def __init__(self, db_path: Path = DB_PATH) -> None:
         """Initialize the database connection and create tables if they don't exist."""
         self.conn = sqlite3.connect(db_path)
-        self._create_tables()
+        self._create_table()
 
-    def _create_tables(self) -> None:
+    def _create_table(self) -> None:
         """Create the necessary tables for conversations and profiles if they don't already exist.
 
         - Conversations table: Stores the last messages for each chat_id.
@@ -32,37 +32,26 @@ class ConversationDB:
             CREATE TABLE IF NOT EXISTS conversations (
                 chat_id TEXT PRIMARY KEY,
                 messages TEXT,
+                profile TEXT,
                 last_message_ts TEXT
-            )
-            """
-        )
-
-        # Create profiles table
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS profiles (
-                chat_id TEXT PRIMARY KEY,
-                name TEXT,
-                preferred_languages TEXT,
-                interests TEXT,
-                conversation_style TEXT,
             )
             """
         )
         self.conn.commit()
 
-    def get_conversation(self, chat_id: str) -> Optional[Dict[str, str]]:
+    def get_conversation(self, chat_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve the conversation history for a given chat_id.
 
         :chat_id: The unique identifier for the chat session
         :returns: A dictionary containing the list of messages and the timestamp of the last message
         """
         cur = self.conn.cursor()
-        cur.execute("SELECT messages, last_message_ts FROM conversations WHERE chat_id=?", (chat_id,))
+        cur.execute("SELECT messages, profile, last_message_ts FROM conversations WHERE chat_id=?", (chat_id,))
         if row := cur.fetchone():
             messages = json.loads(row[0]) if row[0] else []
-            last_message_ts = row[1]
-            return {"messages": messages, "last_message_ts": last_message_ts}
+            profile = json.loads(row[1]) if row[1] else None
+            last_message_ts = row[2]
+            return {"messages": messages, "profile": profile, "last_message_ts": last_message_ts}
 
     def save_conversation(
         self, chat_id: str, messages: List[Dict[str, str]], last_message_ts: Optional[str] = None
@@ -74,11 +63,23 @@ class ConversationDB:
         :last_message_ts: Optional timestamp of the last message (if not provided, current time will be used)
         """
         messages = messages[-self.max_entries_per_chat :]
-        last_message_ts = last_message_ts or datetime.now(datetime.timezone.utc).isoformat()
+        last_message_ts = last_message_ts or datetime.now(timezone.utc).isoformat()
         cur = self.conn.cursor()
+
+        # Preserve existing profile
+        cur.execute("SELECT profile FROM conversations WHERE chat_id=?", (chat_id,))
+        row = cur.fetchone()
+        profile = row[0] if row else None
+
         cur.execute(
-            "REPLACE INTO conversations (chat_id, messages, last_message_ts) VALUES (?, ?, ?)",
-            (chat_id, json.dumps(messages), last_message_ts),
+            """
+            INSERT INTO conversations (chat_id, messages, profile, last_message_ts)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(chat_id) DO UPDATE SET
+                messages=excluded.messages,
+                last_message_ts=excluded.last_message_ts
+            """,
+            (chat_id, json.dumps(messages), profile, last_message_ts),
         )
         self.conn.commit()
 
@@ -89,18 +90,11 @@ class ConversationDB:
         :returns: A dictionary containing the user profile information
         """
         cur = self.conn.cursor()
-        cur.execute(
-            "SELECT name, preferred_languages, interests, conversation_style FROM profiles WHERE chat_id=?",
-            (chat_id,),
-        )
+        cur.execute("SELECT profile FROM conversations WHERE chat_id=?", (chat_id,))
         row = cur.fetchone()
-        if row:
-            return {
-                "name": row[0],
-                "preferred_languages": json.loads(row[1]) if row[1] else [],
-                "interests": json.loads(row[2]) if row[2] else [],
-                "conversation_style": row[3],
-            }
+
+        if row and row[0]:
+            return json.loads(row[0])
 
     def save_profile(self, chat_id: str, profile: Dict[str, Any]) -> None:
         """Save the user profile for a given chat_id.
@@ -111,17 +105,12 @@ class ConversationDB:
         cur = self.conn.cursor()
         cur.execute(
             """
-            REPLACE INTO profiles (
-                chat_id, name, preferred_languages, interests, conversation_style
-            ) VALUES (?, ?, ?, ?, ?)
+            INSERT INTO conversations (chat_id, messages, profile, last_message_ts)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(chat_id) DO UPDATE SET
+                profile=excluded.profile
             """,
-            (
-                chat_id,
-                profile.get("name"),
-                json.dumps(profile.get("preferred_languages", [])),
-                json.dumps(profile.get("interests", [])),
-                profile.get("conversation_style"),
-            ),
+            (chat_id, json.dumps([]), json.dumps(profile), datetime.now(timezone.utc).isoformat()),
         )
         self.conn.commit()
 
@@ -137,6 +126,6 @@ class ConversationDB:
             return True
 
         last_ts = datetime.fromisoformat(conv["last_message_ts"])
-        now = datetime.now(datetime.timezone.utc)
+        now = datetime.now(timezone.utc)
         diff = (now - last_ts).total_seconds() / 60
         return diff > threshold_minutes

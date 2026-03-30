@@ -9,8 +9,11 @@ from . import (
     text_pipeline,
     voice_pipeline,
     set_latest_agent_voice_response,
+    set_latest_user_voice_input,
     get_latest_agent_voice_response,
+    get_latest_user_voice_input,
     get_updated_memory,
+    persist_conversation_context,
 )
 
 
@@ -41,13 +44,20 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         chat_memory=chat_hot_memory,
         user_profile=profile,
     )
-    db.save_conversation(chat_id, chat_hot_memory.get_messages())
-    db.save_profile(chat_id, result.get("parsed_profile", {}))
+    # Persist conversation context and profile after processing
+    persist_conversation_context(chat_id, db, chat_hot_memory)
+    updated_profile = result.get("parsed_profile") or {}
+    if updated_profile:
+        if not updated_profile["name"]:
+            updated_profile["name"] = update.message.from_user.first_name
+
+        db.save_profile(chat_id, updated_profile)
 
     try:
         # Reply
         await update.message.reply_voice(voice=result["synthesized_audio_path"])
         set_latest_agent_voice_response(update.message.from_user.id, result["model_output_text"])
+        set_latest_user_voice_input(update.message.from_user.id, result["user_input_text"])
         logger.info(
             f"=> Processed voice message from user '{update.message.from_user.id}'\n"
             f"=> Input text: '{result['user_input_text']}'\n"
@@ -79,8 +89,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     result = await text_pipeline.process_conversation(
         user_input_text, chat_memory=chat_hot_memory, user_profile=profile
     )
-    db.save_conversation(chat_id, chat_hot_memory.get_messages())
-    db.save_profile(chat_id, result.get("parsed_profile", {}))
+
+    # Persist conversation context and profile after processing
+    persist_conversation_context(chat_id, db, chat_hot_memory)
+    updated_profile = result.get("parsed_profile") or {}
+    if updated_profile:
+        if not updated_profile.get("name"):
+            updated_profile["name"] = update.message.from_user.first_name
+
+        db.save_profile(chat_id, updated_profile)
 
     # Reply
     await update.message.reply_text(result["model_output_text"])
@@ -91,8 +108,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
-async def handle_transcription_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /transcribe command to transcribe the latest agent voice response.
+async def handle_what_agent_said(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /whatYouSaid command to transcribe the latest agent voice response.
 
     :update: Incoming update from Telegram
     :context: Context for the callback
@@ -101,6 +118,21 @@ async def handle_transcription_request(update: Update, context: ContextTypes.DEF
     latest_response_text = get_latest_agent_voice_response(user_id)
 
     if latest_response_text:
-        await update.message.reply_text(latest_response_text)
+        await update.message.reply_text(f"I said:\n{latest_response_text}")
     else:
-        await update.message.reply_text("Desculpe, não tenho uma resposta de voz recente para transcrever.")
+        await update.message.reply_text("Sorry, I don't have a recent voice response to transcribe.")
+
+
+async def handle_what_user_said(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /whatISaid command to transcribe the latest user voice response.
+
+    :update: Incoming update from Telegram
+    :context: Context for the callback
+    """
+    user_id = update.message.from_user.id
+    latest_response_text = get_latest_user_voice_input(user_id)
+
+    if latest_response_text:
+        await update.message.reply_text(f"You said:\n{latest_response_text}")
+    else:
+        await update.message.reply_text("Sorry, I couldn't access your last voice input.")

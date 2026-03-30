@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from app.config import MAX_CONVERSATION_TURNS
 from app.llm.prompts import SYSTEM_PROMPT
 from app.llm.conversation_memory import ConversationReminder
 from app.llm.conversation_state import ConversationState
@@ -69,6 +70,13 @@ class BaseConversationPipeline:
 
         return prompts
 
+    def _set_periodicity(self) -> int:
+        """Set the periodicity for updating the user profile. Ensuring always a even number."""
+        periodicity = round(MAX_CONVERSATION_TURNS / 2)
+        if periodicity % 2 != 0:
+            periodicity += 1
+        return periodicity
+
     async def update_conversation_context(self, language: str, user_input_text: str, model_output_text: str) -> None:
         """Update the conversation state based on the latest interaction
 
@@ -86,6 +94,7 @@ class BaseConversationPipeline:
         try:
             parsed = json.loads(raw_state)
         except json.JSONDecodeError:
+            self.logger.error(f"Failed to parse conversation state to JSON: {raw_state}")
             parsed = {}
 
         self.state.topic = parsed.get("topic")
@@ -96,21 +105,27 @@ class BaseConversationPipeline:
     async def update_user_profile(
         self, chat_memory: ConversationReminder, user_profile: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Update the user profile based on the latest conversation history
+        """Update the user profile based on the latest conversation history.
+        Only updates if the number of iteractions is a multiple of MAX_CONVERSATION_TURNS.
 
         :chat_memory: ConversationReminder instance containing the conversation history
         :user_profile: Optional dictionary containing previous user profile information
         :returns: Updated user profile as a dictionary
         """
+        parsed_profile = {}
         last_messages = chat_memory.get_messages()
-        raw_user_profile = await self.summarizer.get_updated_user_profile(
-            previous_user_profile=user_profile, last_messages=last_messages
-        )
-
-        try:
-            parsed_profile = json.loads(raw_user_profile)
-        except json.JSONDecodeError:
-            parsed_profile = {}
+        is_initial_turn = len(last_messages) == 2
+        if is_initial_turn or len(last_messages) % self._set_periodicity() == 0:
+            raw_user_profile = await self.summarizer.get_updated_user_profile(
+                previous_user_profile=user_profile, last_messages=last_messages
+            )
+            try:
+                parsed_profile = json.loads(raw_user_profile)
+            except json.JSONDecodeError:
+                self.logger.error(f"Failed to parse user profile to JSON: {raw_user_profile}")
+                parsed_profile = {}
+        else:
+            self.logger.debug(f"Skipping user profile update. Total messages: {len(last_messages)}.\n")
 
         return parsed_profile
 

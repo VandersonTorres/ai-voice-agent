@@ -19,7 +19,8 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", logging.INFO)
 TEMP_DIR = Path("data/temp_audio")
 TEMP_DIR.mkdir(exist_ok=True, parents=True)
 DB_PATH = Path("data/conversations.db")
+SERIALIZED_DATA_PATH = Path("data/conversations.json")
 
 # Storage config
-# Max number of messages to store per chat session (user + assistant = 2 messages per turn)
-MAX_CONVERSATION_TURNS = 10 * 2
+# Max number of messages to store per chat session (hot cache)
+MAX_CONVERSATION_TURNS = 10 * 2  # (user + assistant = 2 messages per turn)
