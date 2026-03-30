@@ -8,7 +8,7 @@ from telegram.ext import (
 from app.config import TELEGRAM_BOT_TOKEN
 
 from . import on_shutdown, start
-from .handlers import handle_text, handle_voice, handle_transcription_request
+from .handlers import handle_text, handle_voice, handle_what_agent_said, handle_what_user_said
 
 
 def run_telegram_bot() -> None:
@@ -17,7 +17,8 @@ def run_telegram_bot() -> None:
 
     # Commands Handlers
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("transcribe", handle_transcription_request))
+    app.add_handler(CommandHandler("whatYouSaid", handle_what_agent_said))
+    app.add_handler(CommandHandler("whatISaid", handle_what_user_said))
 
     # Voice message handler
     app.add_handler(MessageHandler(filters.VOICE, handle_voice))
@@ -26,4 +27,4 @@ def run_telegram_bot() -> None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     # Start bot
-    app.run_polling()
+    app.run_polling(timeout=30, bootstrap_retries=3)
