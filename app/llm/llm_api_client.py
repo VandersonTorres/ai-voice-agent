@@ -1,35 +1,39 @@
 import httpx
 from typing import List, Dict
 
-from app.config import CONVERSATIONAL_LLM
+from openai import OpenAI
+
+from app.config import CONVERSATIONAL_LLM, IS_PRODUCTION
 from app.logging import get_logger
+from app.utils import run_in_thread
 
 
 class LLMClient:
     """Asynchronous client for interacting with the target LLM API"""
 
-    def __init__(
-        self, model: str = CONVERSATIONAL_LLM, host: str = "http://localhost:11434", timeout: int = 360
-    ) -> None:
+    is_production = IS_PRODUCTION
+
+    def __init__(self, model: str = CONVERSATIONAL_LLM, timeout: int = 30) -> None:
         """Initialize the LLM client
 
-        :model: The name of the Model to be used (e.g. llama3:8b)
-        :host: The server base URL. Defaults to localhost.
+        :model: The name of the Model to be used (e.g. llama3:8b, gpt-4o-mini).
         :timeout: Time waited until break the LLM request
         """
         self.model = model
-        self.host = host
         self.logger = get_logger(self.__class__.__name__)
 
-        self.logger.info(f"Initializing LLMClient with model {self.model} at {self.host}")
-        self.client = httpx.AsyncClient(timeout=timeout)
+        if self.is_production:
+            self.client = OpenAI(timeout=timeout)
+            self.host = "openai"  # Host is not used for OpenAI client, set for logging consistency
+        else:
+            self.client = httpx.AsyncClient(timeout=360)  # Longer timeout for local LLMs
+            self.host = "http://localhost:11434"
 
-    async def chat(self, messages: List[Dict[str, str]]) -> str:
-        """Send a chat request to the LLM API and return the model response
+        self.logger.info(f"Initialized LLMClient with model {self.model} at {self.host}")
 
-        :messages: A list of message dictionaries following the OpenAI chat format
-            (each item must contain 'role' and 'content')
-        :returns: The generated text response from the language model
+    async def _request_dev_model(self, messages: List[Dict[str, str]]) -> str:
+        """Helper method to send a request to the development LLM API and return the response content
+
         :raises requests.HTTPError: If the LLM API returns an error response
         """
         payload = {
@@ -37,8 +41,6 @@ class LLMClient:
             "messages": messages,
             "stream": False,
         }
-
-        self.logger.info(f"[LLM] Sending async request to {self.host}/api/chat")
 
         response = await self.client.post(
             f"{self.host}/api/chat",
@@ -48,5 +50,34 @@ class LLMClient:
 
         return response.json()["message"]["content"].strip()
 
+    async def _request_prod_model(self, messages: List[Dict[str, str]]) -> str:
+        """
+        Helper method to send a request to the production LLM API and return the response content
+        """
+        return await run_in_thread(self._sync_chat, messages)
+
+    def _sync_chat(self, messages: List[Dict[str, str]]) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+        )
+        self.logger.info(f"[LLM] Tokens used: {response.usage.total_tokens}")
+        return response.choices[0].message.content.strip()
+
+    async def chat(self, messages: List[Dict[str, str]]) -> str:
+        """Send a chat request to the LLM API and return the model response
+
+        :messages: A list of message dictionaries following the OpenAI chat format
+            (each item must contain 'role' and 'content')
+        :returns: The generated text response from the language model
+        :raises requests.HTTPError: If the LLM API returns an error response
+        """
+        self.logger.info(f"[LLM] Requesting chat completion from '{self.model}'")
+        if self.is_production:
+            return await self._request_prod_model(messages)
+
+        return await self._request_dev_model(messages)
+
     async def close(self):
-        await self.client.aclose()
+        if not self.is_production:
+            await self.client.aclose()
