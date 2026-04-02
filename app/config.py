@@ -6,8 +6,13 @@ from pathlib import Path
 
 load_dotenv()
 
+# Environment config
+IS_PRODUCTION = os.getenv("ENVIRONMENT") == "production"
+
 # LLM config
-CONVERSATIONAL_LLM = os.getenv("CONVERSATIONAL_LLM")
+_dev_env_llm = os.getenv("DEV_ENV_LLM")
+_prod_env_llm = os.getenv("PROD_ENV_LLM")
+CONVERSATIONAL_LLM = _prod_env_llm if IS_PRODUCTION else _dev_env_llm
 WHISPER_MODEL = os.getenv("WHISPER_MODEL")
 DEFAULT_LANGUAGE = os.getenv("DEFAULT_LANGUAGE")
 

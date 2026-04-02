@@ -4,7 +4,7 @@ from typing import Any
 from app.audio.formats import to_wav
 from app.llm.conversation_memory import ConversationReminder
 from app.pipelines import BaseConversationPipeline
-from app.stt.whisper_engine import WhisperEngine
+from app.stt.stt_engine import STTEngineFactory
 from app.tts.edge_tts_engine import EdgeTTSEngine
 from app.tts.voices import DEFAULT_VOICE, VOICE_BY_LANGUAGE
 from app.utils import run_in_thread
@@ -19,7 +19,7 @@ class AudioPipeline(BaseConversationPipeline):
 
     def __init__(self) -> None:
         super().__init__()
-        self.stt = WhisperEngine()
+        self.stt = STTEngineFactory.create_engine()
 
     async def transcribe_user_audio(self, audio_path: Path) -> dict[str, Any]:
         """Run the user audio through the Speech-To-Text pipeline, ensuring WAV format.
