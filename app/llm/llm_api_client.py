@@ -26,7 +26,7 @@ class LLMClient:
             self.client = OpenAI(timeout=timeout)
             self.host = "openai"  # Host is not used for OpenAI client, set for logging consistency
         else:
-            self.client = httpx.AsyncClient(timeout=360)  # Longer timeout for local LLMs
+            self.client = httpx.AsyncClient(timeout=timeout * 6)  # Longer timeout for local LLMs
             self.host = "http://localhost:11434"
 
         self.logger.info(f"Initialized LLMClient with model {self.model} at {self.host}")
