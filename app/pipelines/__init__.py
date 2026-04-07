@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from app.config import MAX_CONVERSATION_TURNS
@@ -92,7 +93,8 @@ class BaseConversationPipeline:
         )
 
         try:
-            parsed = json.loads(raw_state)
+            cleaned = re.sub(r"^```json\s*|```$", "", raw_state.strip(), flags=re.MULTILINE)
+            parsed = json.loads(cleaned)
         except json.JSONDecodeError:
             self.logger.error(f"Failed to parse conversation state to JSON: {raw_state}")
             parsed = {}

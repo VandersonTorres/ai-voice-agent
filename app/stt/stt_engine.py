@@ -53,6 +53,18 @@ class OpenAIEngine:
         self.client = OpenAI()
         self.logger = get_logger(self.__class__.__name__)
 
+    def detect_language(self, text: str) -> str:
+        """Detect the language of the given text using OpenAI's language detection capabilities."""
+        response = self.client.responses.create(
+            model="gpt-4o-mini",
+            input=(
+                "Detect the language of this text. "
+                "Answer with only the language abbreviation according to the universal convention "
+                f"(e.g., 'en', 'pt', 'fr'):\n\n{text}"
+            ),
+        )
+        return response.output_text.strip()
+
     def transcribe(self, audio_path: str) -> Dict[str, str]:
         """Transcribe an audio file to text using OpenAI's audio transcription API.
 
@@ -64,9 +76,11 @@ class OpenAIEngine:
         with open(audio_path, "rb") as f:
             transcript = self.client.audio.transcriptions.create(model="gpt-4o-mini-transcribe", file=f)
 
+        text = transcript.text.strip()
+        lang = self.detect_language(text)
         return {
-            "text": transcript.text.strip(),
-            "language": getattr(transcript, "language", "unknown"),
+            "text": text,
+            "language": lang,
         }
 
 
