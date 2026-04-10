@@ -78,20 +78,32 @@ def persist_conversation_context(chat_id: str, db: ConversationDB, chat_hot_memo
     logger.info(f"Updated conversation persistence for chat_id: {chat_id}")
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, evaluation_mode: bool) -> None:
     """Send a welcome message when the /start command is issued.
 
     :update: Incoming update from Telegram
     :context: Context for the callback
     """
-    await update.message.reply_text(
-        f"Olá {update.message.from_user.first_name}! Sou Lisa, sua parceira de idiomas.\n"
-        "Sobre o que vamos conversar hoje? Pode me mandar um áudio se quiser!\n"
-        "Comandos disponíveis:\n\n"
-        "/start - Iniciar a conversa\n"
-        "/whatYouSaid - Transcrever a última resposta de voz\n"
-        "/whatISaid - Transcrever o que você disse\n"
-    )
+    if evaluation_mode:
+        context.user_data["started_evaluation"] = True
+
+        await update.message.reply_text(
+            "Hi! You just started our evaluation mode.\n\n"
+            "In this mode, you'll be guided through an assisted assessment of your preferred language.\n"
+            "We highly encourage you to opt for voice interactions "
+            "to fully engage with the assessment and have a better experience.\n\n"
+            "To proceed, just send me a voice message in the language you're learning, introducing yourself. "
+            "Don't worry about making it perfect - just speak naturally, and I'll take care of the rest!\n\n"
+        )
+    else:
+        await update.message.reply_text(
+            f"Olá {update.message.from_user.first_name}! Sou Lisa, sua parceira de idiomas.\n"
+            "Sobre o que vamos conversar hoje? Pode me mandar um áudio se quiser!\n"
+            "Comandos disponíveis:\n\n"
+            "/start - Iniciar a conversa\n"
+            "/whatYouSaid - Transcrever a última resposta de voz\n"
+            "/whatISaid - Transcrever o que você disse\n"
+        )
 
 
 async def on_shutdown(app) -> None:

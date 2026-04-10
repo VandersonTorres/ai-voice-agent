@@ -17,6 +17,14 @@ from . import (
 )
 
 
+async def _block_until_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    if not context.user_data.get("started_evaluation"):
+        await update.message.reply_text("Send '/start' to begin your assessment and unlock interaction features")
+        return True
+
+    return False
+
+
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming voice messages from users.
 
@@ -106,6 +114,22 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"=> Input text: '{result['user_input_text']}'\n"
         f"=> Response text: '{result['model_output_text']}'\n"
     )
+
+
+async def evaluation_text_handler(update, context):
+    blocked = await _block_until_start(update, context)
+    if blocked:
+        return
+
+    # TODO: Custom processing here
+
+
+async def evaluation_voice_handler(update, context):
+    blocked = await _block_until_start(update, context)
+    if blocked:
+        return
+
+    # TODO: Custom processing here
 
 
 async def handle_what_agent_said(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
