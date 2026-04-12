@@ -108,7 +108,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 language=result["language"],
                 model_output_text=result["model_output_text"],
                 output_audio_path=response_output_path,
-                logger=logger,
             )
             await update.message.reply_voice(voice=audio_path)
             set_latest_agent_voice_response(update.message.from_user.id, result["model_output_text"])
