@@ -69,7 +69,6 @@ class BaseConversationPipeline:
             {"role": "user", "content": user_input_text},
         ]
 
-        print(f">>> DEBUG IT:\n\n {prompts}\n\n")
         return prompts
 
     def _set_periodicity(self) -> int:
