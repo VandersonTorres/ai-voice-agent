@@ -27,6 +27,10 @@ class ConversationReminder:
         """Add an assistant message to the memory"""
         self.history.append({"role": "assistant", "content": text})
 
+    def add_system_message(self, text: str) -> None:
+        """Add a system message to the memory"""
+        self.history.append({"role": "system", "content": text})
+
     def get_messages(self) -> List[Dict[str, str]]:
         """Return the conversation history formatted for the LLM."""
         return list(self.history)

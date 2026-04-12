@@ -16,6 +16,8 @@ from . import (
     persist_conversation_context,
 )
 
+RESPONSE_AUDIO_PATH_NAME = "response_{file_id}_response.wav"
+
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle incoming voice messages from users.
@@ -37,7 +39,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     chat_hot_memory = get_updated_memory(chat_id, db)
 
     # Process the voice input and Persist conversation context after processing
-    response_output_path = TEMP_DIR / f"response_{voice.file_id}_response.wav"
+    response_output_path = TEMP_DIR / RESPONSE_AUDIO_PATH_NAME.format(file_id=voice.file_id)
     result = await voice_pipeline.process_conversation(
         user_input_audio_path=user_input_path,
         output_audio_path=response_output_path,
@@ -99,7 +101,30 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
         db.save_profile(chat_id, updated_profile)
 
-    # Reply
+    if result.get("should_convert_to_audio") is True:
+        try:
+            response_output_path = TEMP_DIR / RESPONSE_AUDIO_PATH_NAME.format(file_id=update.message.message_id)
+            audio_path = await voice_pipeline.synthesize_audio_output(
+                language=result["language"],
+                model_output_text=result["model_output_text"],
+                output_audio_path=response_output_path,
+                logger=logger,
+            )
+            await update.message.reply_voice(voice=audio_path)
+            set_latest_agent_voice_response(update.message.from_user.id, result["model_output_text"])
+            logger.info(
+                f"=> Processed text message from user '{update.message.from_user.id}' with audio response\n"
+                f"=> Input text: '{result['user_input_text']}'\n"
+                f"=> Response text: '{result['model_output_text']}'\n"
+            )
+            audio_path.unlink(missing_ok=True)
+        except Exception as err:
+            await update.message.reply_text(f"Vou responder por texto dessa vez.\n\n{result['model_output_text']}")
+            logger.error(f"Error processing voice message. Response sent via text. Details: {err}", exc_info=True)
+
+        return
+
+    # Reply Text
     await update.message.reply_text(result["model_output_text"])
     logger.info(
         f"=> Processed text message from user '{update.message.from_user.id}'\n"

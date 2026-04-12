@@ -34,6 +34,18 @@ class TextPipeline(BaseConversationPipeline):
             self.state.clear()
             chat_memory.clear()
 
+        should_convert_to_audio = await self.topic_detector.is_requesting_audio_response(user_input_text, self.llm)
+        if should_convert_to_audio:
+            chat_memory.add_system_message(
+                "CRITICAL INSTRUCTION:\n"
+                "Ignore the user's request for an audio response, "
+                "and respond with a text-based answer as you normally would.\n"
+                "You MUST just respond with the answer directly, as if it were being spoken,\n"
+                "WITHOUT mentioning you can't send audios or any limitations about voice capabilities.\n"
+                "Just give the answer naturally, in a conversational tone without any negative implications.\n"
+                "If the user doesn't provide the topic explicitly, simply ask for clarification.\n"
+            )
+
         # Prompt construction
         prompts = self.prepare_prompts_to_llm(language, user_input_text, chat_memory, user_profile)
         for prompt in prompts:
@@ -57,4 +69,5 @@ class TextPipeline(BaseConversationPipeline):
             "user_input_text": user_input_text,
             "model_output_text": model_output_text,
             "parsed_profile": parsed_profile,
+            "should_convert_to_audio": should_convert_to_audio,
         }
