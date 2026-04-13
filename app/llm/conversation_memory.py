@@ -21,11 +21,11 @@ class ConversationReminder:
 
     def add_user_message(self, text: str) -> None:
         """Add a user message to the memory"""
-        self.history.append({"role": "user", "content": text})
+        self.history.append({"role": "user", "content": f"User said: {text}"})
 
     def add_assistant_message(self, text: str) -> None:
         """Add an assistant message to the memory"""
-        self.history.append({"role": "assistant", "content": text})
+        self.history.append({"role": "assistant", "content": f"Assistant said: {text}"})
 
     def add_system_message(self, text: str) -> None:
         """Add a system message to the memory"""

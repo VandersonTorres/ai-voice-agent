@@ -60,6 +60,8 @@ class LLMClient:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
+            temperature=0.7,
+            presence_penalty=0.6,
         )
         self.logger.info(f"[LLM] Tokens used: {response.usage.total_tokens}")
         return response.choices[0].message.content.strip()

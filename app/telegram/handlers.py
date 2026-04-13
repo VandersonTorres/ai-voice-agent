@@ -105,7 +105,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         try:
             response_output_path = TEMP_DIR / RESPONSE_AUDIO_PATH_NAME.format(file_id=update.message.message_id)
             audio_path = await voice_pipeline.synthesize_audio_output(
-                language=result["language"],
                 model_output_text=result["model_output_text"],
                 output_audio_path=response_output_path,
             )
