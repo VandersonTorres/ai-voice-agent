@@ -87,7 +87,6 @@ class AudioPipeline(BaseConversationPipeline):
         if self.topic_detector.is_new_topic(self.state.summary, user_input_text):
             self.logger.info("Topic change detected. Resetting conversation state.")
             self.state.clear()
-            chat_memory.clear()
 
         # Prompt construction
         prompts = self.prepare_prompts_to_llm(user_input_text, chat_memory, user_profile)

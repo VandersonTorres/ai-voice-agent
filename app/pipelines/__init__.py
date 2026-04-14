@@ -125,7 +125,8 @@ class BaseConversationPipeline:
                 previous_user_profile=user_profile, last_messages=last_messages
             )
             try:
-                parsed_profile = json.loads(raw_user_profile)
+                cleaned = re.sub(r"^```json\s*|```$", "", raw_user_profile.strip(), flags=re.MULTILINE)
+                parsed_profile = json.loads(cleaned)
             except json.JSONDecodeError:
                 self.logger.error(f"Failed to parse user profile to JSON: {raw_user_profile}")
                 parsed_profile = {}

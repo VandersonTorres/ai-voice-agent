@@ -33,7 +33,6 @@ class TextPipeline(BaseConversationPipeline):
         if self.topic_detector.is_new_topic(self.state.summary, user_input_text):
             self.logger.info("Topic change detected. Resetting conversation state.")
             self.state.clear()
-            chat_memory.clear()
 
         should_convert_to_audio = await self.topic_detector.is_requesting_audio_response(user_input_text, self.llm)
         if should_convert_to_audio:
