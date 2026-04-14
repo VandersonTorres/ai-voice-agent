@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import Any
 
+from langdetect import detect
+
 from app.audio.formats import to_wav
 from app.llm.conversation_memory import ConversationReminder
 from app.pipelines import BaseConversationPipeline
 from app.stt.stt_engine import STTEngineFactory
 from app.tts.edge_tts_engine import EdgeTTSEngine
-from app.tts.voices import DEFAULT_VOICE, VOICE_BY_LANGUAGE
 from app.utils import run_in_thread
 
 
@@ -38,22 +39,16 @@ class AudioPipeline(BaseConversationPipeline):
         user_input_text = stt_result["text"]
         return {"language": language, "user_input_text": user_input_text, "user_input_audio_path": wav_path}
 
-    async def synthesize_audio_output(self, language: str, model_output_text: str, output_audio_path: Path) -> Path:
+    async def synthesize_audio_output(self, model_output_text: str, output_audio_path: Path) -> Path:
         """Synthesize the model output text into speech audio using Edge TTS
 
-        :language: Language used for synthesis
         :model_output_text: Text to be synthesized
         :output_audio_path: Path to save the synthesized audio
         :returns: Path to the synthesized audio file
         """
-        supported_languages = set(VOICE_BY_LANGUAGE.keys())
-        if language not in supported_languages:
-            voice = DEFAULT_VOICE
-            self.logger.warning(f"Language {language} not supported. Using fallback voice {DEFAULT_VOICE} ")
-        else:
-            voice = VOICE_BY_LANGUAGE.get(language)
+        language = detect(model_output_text).lower()
 
-        tts = EdgeTTSEngine(voice=voice)
+        tts = EdgeTTSEngine(language=language)
         output_path = await tts._synthesize_speech_from_text(model_output_text, output_audio_path)
         return output_path
 
@@ -92,10 +87,9 @@ class AudioPipeline(BaseConversationPipeline):
         if self.topic_detector.is_new_topic(self.state.summary, user_input_text):
             self.logger.info("Topic change detected. Resetting conversation state.")
             self.state.clear()
-            chat_memory.clear()
 
         # Prompt construction
-        prompts = self.prepare_prompts_to_llm(language, user_input_text, chat_memory, user_profile)
+        prompts = self.prepare_prompts_to_llm(user_input_text, chat_memory, user_profile)
         for prompt in prompts:
             self.logger.debug(f"\nEnqueued prompt: {prompt}")
 
@@ -114,7 +108,7 @@ class AudioPipeline(BaseConversationPipeline):
             self.logger.info(f"User profile was updated successfully:\n\t{parsed_profile}")
 
         # Output voice audio preparing (TTS)
-        synthesized_audio_path = await self.synthesize_audio_output(language, model_output_text, output_audio_path)
+        synthesized_audio_path = await self.synthesize_audio_output(model_output_text, output_audio_path)
 
         return {
             "language": language,

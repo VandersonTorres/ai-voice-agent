@@ -27,14 +27,12 @@ class BaseConversationPipeline:
 
     def prepare_prompts_to_llm(
         self,
-        language: str,
         user_input_text: str,
         chat_memory: ConversationReminder,
         user_profile: dict[str, Any] | None = None,
     ) -> list[dict[str, str]]:
         """Build the final prompt to the Model, preparing previous context if applicable
 
-        :language: Language used by user
         :user_input_text: User input text
         :chat_memory: ConversationReminder instance containing the conversation history
         :user_profile: Optional dictionary containing user profile information (e.g., name, preferences)
@@ -58,17 +56,22 @@ class BaseConversationPipeline:
                 f"User tone: {self.state.tone}\n"
             )
 
-        if self.state.language and language != self.state.language:
-            # If user changes language, avoids to mix multilanguages contexts
-            self.state.clear()
-            chat_memory.clear()
+        prompts = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-        prompts = [
-            {"role": "system", "content": SYSTEM_PROMPT + context_block},
-            *chat_memory.get_messages(),
-            {"role": "user", "content": user_input_text},
-        ]
+        if context_block:
+            prompts.append(
+                {
+                    "role": "system",
+                    "content": f"- 'Conversation context' (use as guidance, not strict rules):\n{context_block}",
+                }
+            )
 
+        prompts.extend(
+            [
+                *chat_memory.get_messages(),
+                {"role": "user", "content": user_input_text},
+            ]
+        )
         return prompts
 
     def _set_periodicity(self) -> int:
@@ -122,7 +125,8 @@ class BaseConversationPipeline:
                 previous_user_profile=user_profile, last_messages=last_messages
             )
             try:
-                parsed_profile = json.loads(raw_user_profile)
+                cleaned = re.sub(r"^```json\s*|```$", "", raw_user_profile.strip(), flags=re.MULTILINE)
+                parsed_profile = json.loads(cleaned)
             except json.JSONDecodeError:
                 self.logger.error(f"Failed to parse user profile to JSON: {raw_user_profile}")
                 parsed_profile = {}
