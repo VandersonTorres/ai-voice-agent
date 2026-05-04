@@ -88,12 +88,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, evaluation_m
         context.user_data["started_evaluation"] = True
 
         await update.message.reply_text(
-            "Hi! You just started our evaluation mode.\n\n"
-            "In this mode, you'll be guided through an assisted assessment of your preferred language.\n"
-            "We highly encourage you to opt for voice interactions "
-            "to fully engage with the assessment and have a better experience.\n\n"
-            "To proceed, just send me a voice message in the language you're learning, introducing yourself. "
-            "Don't worry about making it perfect - just speak naturally, and I'll take care of the rest!\n\n"
+            "Olá! Você acabou de iniciar nosso modo de avaliação.\n\n"
+            "Neste modo, você será guiado por uma avaliação assistida de seu idioma preferido.\n"
+            "Incentivamos fortemente que você opte por interações por voz "
+            "para se envolver totalmente com a avaliação e ter uma experiência melhor.\n\n"
+            "*Para prosseguir, me envie uma mensagem de voz (ou texto) "
+            "no idioma que você está aprendendo, se apresentando.*\n"
+            "Não se preocupe em torná-la perfeita - apenas fale naturalmente, e eu cuidarei do resto!\n\n"
         )
     else:
         await update.message.reply_text(

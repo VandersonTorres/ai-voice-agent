@@ -21,7 +21,7 @@ RESPONSE_AUDIO_PATH_NAME = "response_{file_id}_response.wav"
 
 async def _block_until_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if not context.user_data.get("started_evaluation"):
-        await update.message.reply_text("Send '/start' to begin your assessment and unlock interaction features")
+        await update.message.reply_text("Envie '/start' para iniciar sua avaliação e desbloquear recursos de interação")
         return True
 
     return False
@@ -139,17 +139,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
-async def evaluation_text_handler(update, context):
-    blocked = await _block_until_start(update, context)
-    if blocked:
+async def evaluation_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if await _block_until_start(update, context):
         return
 
     # TODO: Custom processing here
 
 
-async def evaluation_voice_handler(update, context):
-    blocked = await _block_until_start(update, context)
-    if blocked:
+async def evaluation_voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if await _block_until_start(update, context):
         return
 
     # TODO: Custom processing here
