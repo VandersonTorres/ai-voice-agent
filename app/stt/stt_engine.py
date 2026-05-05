@@ -44,6 +44,37 @@ class WhisperEngine:
         }
 
 
+# Evaluation Environment (ultra-literal transcription settings)
+class LiteralWhisperEngine(WhisperEngine):
+    """Whisper engine optimized for ultra-literal transcription (evaluation mode)"""
+
+    def transcribe(self, audio_path: str) -> Dict[str, str]:
+        self.logger.info("[STT] Transcribing audio input (LITERAL MODE)...")
+
+        result = self.model.transcribe(
+            audio_path,
+            task="transcribe",
+            temperature=0.0,
+            beam_size=1,  # less reinterpretation
+            best_of=1,  # avoid choosing prettiest phrases
+            condition_on_previous_text=False,
+            no_speech_threshold=0.0,  # avoid skipping uncertain segments
+            logprob_threshold=None,  # do not discard uncertain words
+            compression_ratio_threshold=None,  # do not filter "strange text"
+            word_timestamps=True,  # more literalness
+            initial_prompt=None,  # ensure zero induction
+            verbose=False,
+        )
+
+        text = result.get("text", "").strip()
+        detected_language = result.get("language", "unknown")
+
+        return {
+            "text": text,
+            "language": detected_language,
+        }
+
+
 # Production Environment
 class OpenAIEngine:
     """Speech-to-Text engine using OpenAI's audio transcription API"""
@@ -88,12 +119,18 @@ class STTEngineFactory:
     """Factory class to create instances of STT engines"""
 
     @staticmethod
-    def create_engine() -> WhisperEngine | OpenAIEngine:
+    def create_engine(evaluation_mode: bool = False) -> WhisperEngine | LiteralWhisperEngine | OpenAIEngine:
         """Create an instance of the specified STT engine type
 
+        :param evaluation_mode: If True, creates a LiteralWhisperEngine optimized for evaluation;
+            otherwise, creates a standard WhisperEngine or OpenAIEngine based on environment
         :return: An instance of the requested STT engine
         """
+        engine = WhisperEngine()
         if IS_PRODUCTION:
-            return OpenAIEngine()
+            engine = OpenAIEngine()
 
-        return WhisperEngine()
+        if evaluation_mode:
+            engine = LiteralWhisperEngine()
+
+        return engine
