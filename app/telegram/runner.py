@@ -11,10 +11,10 @@ from app.config import TELEGRAM_BOT_TOKEN
 
 from . import on_shutdown, start
 from .handlers import (
-    handle_text,
-    handle_voice,
     handle_what_agent_said,
     handle_what_user_said,
+    handle_text,
+    voice_handler,
     evaluation_text_handler,
     evaluation_voice_handler,
 )
@@ -37,7 +37,7 @@ def run_telegram_bot(evaluation_mode: bool = False) -> None:
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, evaluation_text_handler))
     else:
         # Add Voice and Text handlers to free interaction with the bot
-        app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+        app.add_handler(MessageHandler(filters.VOICE, voice_handler))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     # Start bot

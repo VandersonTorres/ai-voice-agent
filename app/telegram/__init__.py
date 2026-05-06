@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from app.llm.conversation_memory import ConversationReminder, RapidMemoryManager
+from app.pipelines.evaluation_pipeline import EvaluationAudioPipeline
 from app.pipelines.text_pipeline import TextPipeline
 from app.pipelines.voice_pipeline import AudioPipeline
 from app.utils.conversation_db import ConversationDB
@@ -10,6 +11,7 @@ from app.logging import get_logger
 logger = get_logger(__name__)
 text_pipeline = TextPipeline()
 voice_pipeline = AudioPipeline()
+evaluation_voice_pipeline = EvaluationAudioPipeline()
 
 # Cache to store the latest voice response
 latest_agent_voice_response: dict[str, str] = {}
@@ -92,8 +94,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, evaluation_m
             "Neste modo, você será guiado por uma avaliação assistida de seu idioma preferido.\n"
             "Incentivamos fortemente que você opte por interações por voz "
             "para se envolver totalmente com a avaliação e ter uma experiência melhor.\n\n"
-            "*Para prosseguir, me envie uma mensagem de voz (ou texto) "
-            "no idioma que você está aprendendo, se apresentando.*\n"
+            "Para prosseguir, me envie uma mensagem de voz (ou texto) "
+            "no idioma que você está aprendendo, se apresentando.\n"
             "Não se preocupe em torná-la perfeita - apenas fale naturalmente, e eu cuidarei do resto!\n\n"
         )
     else:

@@ -55,23 +55,24 @@ class LiteralWhisperEngine(WhisperEngine):
             audio_path,
             task="transcribe",
             temperature=0.0,
-            beam_size=1,  # less reinterpretation
-            best_of=1,  # avoid choosing prettiest phrases
+            beam_size=1,
+            best_of=1,
             condition_on_previous_text=False,
-            no_speech_threshold=0.0,  # avoid skipping uncertain segments
-            logprob_threshold=None,  # do not discard uncertain words
-            compression_ratio_threshold=None,  # do not filter "strange text"
-            word_timestamps=True,  # more literalness
-            initial_prompt=None,  # ensure zero induction
+            no_speech_threshold=0.3,
+            logprob_threshold=-2.0,
+            compression_ratio_threshold=1.4,
+            word_timestamps=True,
             verbose=False,
         )
 
         text = result.get("text", "").strip()
         detected_language = result.get("language", "unknown")
+        # TODO: Use segments to map words pronounciation confidence
 
         return {
             "text": text,
             "language": detected_language,
+            # "low_confidence_words": ...
         }
 
 
