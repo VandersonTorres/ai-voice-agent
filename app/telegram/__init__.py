@@ -34,16 +34,17 @@ def get_latest_user_voice_input(user_id: int) -> str | None:
     return latest_user_voice_input.get(str(user_id))
 
 
-def get_updated_memory(chat_id: str, db: ConversationDB) -> ConversationReminder:
+def get_updated_memory(chat_id: str, db: ConversationDB, force_new_conversation: bool = False) -> ConversationReminder:
     """Helper function to update the in-memory conversation context for a given chat_id.
 
     :chat_id: Unique identifier for the chat (e.g., user ID)
     :db: Instance of the ConversationDB to access stored conversations
+    :force_new_conversation: If True, clears the hot memory and starts a new conversation context
     :returns: Updated ConversationReminder instance with the conversation history loaded
     """
     chat_hot_memory: ConversationReminder = RapidMemoryManager.get_memory(chat_id=chat_id)
 
-    if db.is_new_conversation(chat_id):
+    if db.is_new_conversation(chat_id) or force_new_conversation:
         chat_hot_memory.clear()
         return chat_hot_memory
 
@@ -90,13 +91,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, evaluation_m
         context.user_data["started_evaluation"] = True
 
         await update.message.reply_text(
-            "Olá! Você acabou de iniciar nosso modo de avaliação.\n\n"
-            "Neste modo, você será guiado por uma avaliação assistida de seu idioma preferido.\n"
-            "Incentivamos fortemente que você opte por interações por voz "
-            "para se envolver totalmente com a avaliação e ter uma experiência melhor.\n\n"
-            "Para prosseguir, me envie uma mensagem de voz (ou texto) "
-            "no idioma que você está aprendendo, se apresentando.\n"
-            "Não se preocupe em torná-la perfeita - apenas fale naturalmente, e eu cuidarei do resto!\n\n"
+            "Olá! Você acabou de iniciar nosso modo de avaliação.\n"
+            "Neste modo, você será guiado por uma avaliação assistida de seu idioma preferido.\n\n"
+            "Fases:\n"
+            "1. Breve bate-papo via mensagens de voz para entendermos seu nível atual;\n"
+            "2. Complete frases e perguntas para avaliar gramática, vocabulário e fluência;\n"
+            "3. Leia e repita por voz para avaliar pronúncia e entonação;\n"
+            "4. Receba um feedback detalhado sobre suas habilidades linguísticas e áreas de melhoria.\n\n"
+            "Para prosseguir, quando estiver pronto me envie uma mensagem de voz se apresentando "
+            "no idioma que você está aprendendo.\n"
+            "Não se preocupe em torná-la perfeita - apenas fale naturalmente, e eu cuidarei do resto!"
         )
     else:
         await update.message.reply_text(

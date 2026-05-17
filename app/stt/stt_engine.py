@@ -48,7 +48,13 @@ class WhisperEngine:
 class LiteralWhisperEngine(WhisperEngine):
     """Whisper engine optimized for ultra-literal transcription (evaluation mode)"""
 
-    def transcribe(self, audio_path: str) -> Dict[str, str]:
+    def transcribe(self, audio_path: str, probability_threshold: float = 0.4) -> Dict[str, str]:
+        """Transcribe audio with a focus on literal accuracy.
+
+        :param audio_path: Path to the audio file
+        :param probability_threshold: Threshold below which words are flagged as low confidence
+        :return: Dict containing transcribed text, detected language, and low confidence words
+        """
         self.logger.info("[STT] Transcribing audio input (LITERAL MODE)...")
 
         result = self.model.transcribe(
@@ -67,13 +73,19 @@ class LiteralWhisperEngine(WhisperEngine):
 
         text = result.get("text", "").strip()
         detected_language = result.get("language", "unknown")
-        # TODO: Use segments to map words pronounciation confidence
+        low_confidence_words = []
+        for segment in result.get("segments", []):
+            for word_info in segment.get("words", []):
+                probability = word_info.get("probability")
+                if probability is None:
+                    self.logger.warning(f"Word info missing 'probability': {word_info}")
+                    continue
 
-        return {
-            "text": text,
-            "language": detected_language,
-            # "low_confidence_words": ...
-        }
+                probability = float(probability)
+                if probability < probability_threshold:
+                    low_confidence_words.append(word_info.get("word", ""))
+
+        return {"text": text, "language": detected_language, "low_confidence_words": low_confidence_words}
 
 
 # Production Environment
