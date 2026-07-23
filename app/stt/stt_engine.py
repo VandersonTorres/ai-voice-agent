@@ -1,4 +1,3 @@
-import whisper
 from typing import Dict
 
 from openai import OpenAI
@@ -13,6 +12,10 @@ class WhisperEngine:
 
     def __init__(self) -> None:
         """Initialize the Whisper STT engine"""
+        # Imported lazily so the production path (OpenAI API) does not require
+        # torch/whisper to be installed.
+        import whisper  # type: ignore
+
         self.model = whisper.load_model(WHISPER_MODEL)
         self.logger = get_logger(self.__class__.__name__)
 

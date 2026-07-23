@@ -1,0 +1,11 @@
+# Production dependencies (Telegram/WhatsApp + OpenAI APIs).
+# Excludes the local Whisper/torch/CUDA stack, which is only needed for the
+# development environment (ENVIRONMENT=development). To run the local Whisper
+# STT engine, install the full requirements.txt instead.
+edge-tts==7.2.7
+httpx==0.28.1
+jmespath==1.1.0
+langdetect==1.0.9
+openai==2.30.0
+python-dotenv==1.2.1
+python-telegram-bot==22.6
