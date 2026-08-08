@@ -129,3 +129,12 @@ class ConversationDB:
         now = datetime.now(timezone.utc)
         diff = (now - last_ts).total_seconds() / 60
         return diff > threshold_minutes
+
+    def clear_conversation(self, chat_id: str) -> None:
+        """Clear the conversation history and profile for a given chat_id.
+
+        :chat_id: The unique identifier for the chat session
+        """
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM conversations WHERE chat_id=?", (chat_id,))
+        self.conn.commit()

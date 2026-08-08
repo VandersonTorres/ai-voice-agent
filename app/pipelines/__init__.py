@@ -30,6 +30,8 @@ class BaseConversationPipeline:
         user_input_text: str,
         chat_memory: ConversationReminder,
         user_profile: dict[str, Any] | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> list[dict[str, str]]:
         """Build the final prompt to the Model, preparing previous context if applicable
 
@@ -135,7 +137,7 @@ class BaseConversationPipeline:
 
         return parsed_profile
 
-    async def process_conversation(self) -> dict[str, Any]:
+    async def process_conversation(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """Orchestrates the full conversation flow.
         Must return at least the following keys in the result dict:
             - user_input_text: The text from user input

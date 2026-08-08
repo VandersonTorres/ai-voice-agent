@@ -47,6 +47,50 @@ class WhisperEngine:
         }
 
 
+# Evaluation Environment (ultra-literal transcription settings)
+class LiteralWhisperEngine(WhisperEngine):
+    """Whisper engine optimized for ultra-literal transcription (evaluation mode)"""
+
+    def transcribe(self, audio_path: str, probability_threshold: float = 0.4) -> Dict[str, str]:
+        """Transcribe audio with a focus on literal accuracy.
+
+        :param audio_path: Path to the audio file
+        :param probability_threshold: Threshold below which words are flagged as low confidence
+        :return: Dict containing transcribed text, detected language, and low confidence words
+        """
+        self.logger.info("[STT] Transcribing audio input (LITERAL MODE)...")
+
+        result = self.model.transcribe(
+            audio_path,
+            task="transcribe",
+            temperature=0.0,
+            beam_size=1,
+            best_of=1,
+            condition_on_previous_text=False,
+            no_speech_threshold=0.3,
+            logprob_threshold=-2.0,
+            compression_ratio_threshold=1.4,
+            word_timestamps=True,
+            verbose=False,
+        )
+
+        text = result.get("text", "").strip()
+        detected_language = result.get("language", "unknown")
+        low_confidence_words = []
+        for segment in result.get("segments", []):
+            for word_info in segment.get("words", []):
+                probability = word_info.get("probability")
+                if probability is None:
+                    self.logger.warning(f"Word info missing 'probability': {word_info}")
+                    continue
+
+                probability = float(probability)
+                if probability < probability_threshold:
+                    low_confidence_words.append(word_info.get("word", ""))
+
+        return {"text": text, "language": detected_language, "low_confidence_words": low_confidence_words}
+
+
 # Production Environment
 class OpenAIEngine:
     """Speech-to-Text engine using OpenAI's audio transcription API"""
@@ -91,12 +135,18 @@ class STTEngineFactory:
     """Factory class to create instances of STT engines"""
 
     @staticmethod
-    def create_engine() -> WhisperEngine | OpenAIEngine:
+    def create_engine(evaluation_mode: bool = False) -> WhisperEngine | LiteralWhisperEngine | OpenAIEngine:
         """Create an instance of the specified STT engine type
 
+        :param evaluation_mode: If True, creates a LiteralWhisperEngine optimized for evaluation;
+            otherwise, creates a standard WhisperEngine or OpenAIEngine based on environment
         :return: An instance of the requested STT engine
         """
+        engine = WhisperEngine()
         if IS_PRODUCTION:
-            return OpenAIEngine()
+            engine = OpenAIEngine()
 
-        return WhisperEngine()
+        if evaluation_mode:
+            engine = LiteralWhisperEngine()
+
+        return engine

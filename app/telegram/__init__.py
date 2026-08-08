@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from app.llm.conversation_memory import ConversationReminder, RapidMemoryManager
+from app.pipelines.evaluation_pipeline import EvaluationAudioPipeline
 from app.pipelines.text_pipeline import TextPipeline
 from app.pipelines.voice_pipeline import AudioPipeline
 from app.utils.conversation_db import ConversationDB
@@ -10,6 +11,7 @@ from app.logging import get_logger
 logger = get_logger(__name__)
 text_pipeline = TextPipeline()
 voice_pipeline = AudioPipeline()
+evaluation_voice_pipeline = EvaluationAudioPipeline()
 
 # Cache to store the latest voice response
 latest_agent_voice_response: dict[str, str] = {}
@@ -32,16 +34,17 @@ def get_latest_user_voice_input(user_id: int) -> str | None:
     return latest_user_voice_input.get(str(user_id))
 
 
-def get_updated_memory(chat_id: str, db: ConversationDB) -> ConversationReminder:
+def get_updated_memory(chat_id: str, db: ConversationDB, force_new_conversation: bool = False) -> ConversationReminder:
     """Helper function to update the in-memory conversation context for a given chat_id.
 
     :chat_id: Unique identifier for the chat (e.g., user ID)
     :db: Instance of the ConversationDB to access stored conversations
+    :force_new_conversation: If True, clears the hot memory and starts a new conversation context
     :returns: Updated ConversationReminder instance with the conversation history loaded
     """
     chat_hot_memory: ConversationReminder = RapidMemoryManager.get_memory(chat_id=chat_id)
 
-    if db.is_new_conversation(chat_id):
+    if db.is_new_conversation(chat_id) or force_new_conversation:
         chat_hot_memory.clear()
         return chat_hot_memory
 
@@ -78,20 +81,36 @@ def persist_conversation_context(chat_id: str, db: ConversationDB, chat_hot_memo
     logger.info(f"Updated conversation persistence for chat_id: {chat_id}")
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, evaluation_mode: bool) -> None:
     """Send a welcome message when the /start command is issued.
 
     :update: Incoming update from Telegram
     :context: Context for the callback
     """
-    await update.message.reply_text(
-        f"Olá {update.message.from_user.first_name}! Sou Lisa, sua parceira de idiomas.\n"
-        "Sobre o que vamos conversar hoje? Pode me mandar um áudio se quiser!\n"
-        "Comandos disponíveis:\n\n"
-        "/start - Iniciar a conversa\n"
-        "/whatYouSaid - Transcrever a última resposta de voz\n"
-        "/whatISaid - Transcrever o que você disse\n"
-    )
+    if evaluation_mode:
+        context.user_data["started_evaluation"] = True
+
+        await update.message.reply_text(
+            "Olá! Você acabou de iniciar nosso modo de avaliação.\n"
+            "Neste modo, você será guiado por uma avaliação assistida de seu idioma preferido.\n\n"
+            "Fases:\n"
+            "1. Breve bate-papo via mensagens de voz para entendermos seu nível atual;\n"
+            "2. Complete frases e perguntas para avaliar gramática, vocabulário e fluência;\n"
+            "3. Leia e repita por voz para avaliar pronúncia e entonação;\n"
+            "4. Receba um feedback detalhado sobre suas habilidades linguísticas e áreas de melhoria.\n\n"
+            "Para prosseguir, quando estiver pronto me envie uma mensagem de voz se apresentando "
+            "no idioma que você está aprendendo.\n"
+            "Não se preocupe em torná-la perfeita - apenas fale naturalmente, e eu cuidarei do resto!"
+        )
+    else:
+        await update.message.reply_text(
+            f"Olá {update.message.from_user.first_name}! Sou Lisa, sua parceira de idiomas.\n"
+            "Sobre o que vamos conversar hoje? Pode me mandar um áudio se quiser!\n"
+            "Comandos disponíveis:\n\n"
+            "/start - Iniciar a conversa\n"
+            "/whatYouSaid - Transcrever a última resposta de voz\n"
+            "/whatISaid - Transcrever o que você disse\n"
+        )
 
 
 async def on_shutdown(app) -> None:
